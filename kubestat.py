@@ -67,12 +67,16 @@ class PodListItem:
             "containerMemoryRequests": 0,  # int, bytes
             "containerMemoryLimits": 0,  # int, bytes
 
+            "pvcSize": 0,  # int, bytes
+
             "change": "Unchanged",  # Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
 
             "ref_containerCPURequests": 0,  # int, milliCore
             "ref_containerCPULimits": 0,  # int, milliCore
             "ref_containerMemoryRequests": 0,  # int, bytes
             "ref_containerMemoryLimits": 0,  # int, bytes
+
+            "ref_pvcSize": 0,  # int, bytes
         }
 
     def make_keys(self):
