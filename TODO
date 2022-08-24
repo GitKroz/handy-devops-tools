@@ -1,0 +1,6 @@
+kubestat.py
+* Summary to tree view
+* Tree mode must respect 'with_changes'
+* For filter - make "does NOT match regex"
+* Toggle Megabytes | Mibibytes units
+* Deleted Pod use case

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO:
-# Summary to tree view
-# Toggle Megabytes | Mibibytes units
-# Deleted Pod use case
-
 from typing import TypeVar, Dict, List, Optional, Union
 import logging
 import argparse

@@ -45,3 +45,4 @@ PyCharm 2022.2:
 * File > Settings > Editor > Inspections > Python
    * \[ \] Method is not declared static
 
+ 
