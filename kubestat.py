@@ -27,7 +27,7 @@ args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
 # Classes
 ################################################################################
 
-class PodListItem:
+class ContainerListItem:
     fields: Dict = {}
 
     appName_width: int = 0
@@ -200,29 +200,29 @@ class PodListItem:
             formatted_fields["podName"] = ""
 
         template = \
-            "{appName:<" + str(PodListItem.appName_width + 2) + "}" + \
+            "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
             "{workloadType:<13}" + \
             "{podGlobalIndex:<4}" + \
-            "{podName:<" + str(PodListItem.podName_width + 2) + "}" + \
+            "{podName:<" + str(ContainerListItem.podName_width + 2) + "}" + \
             "{containerType:<7}" + \
-            "{containerName:<" + str(PodListItem.containerName_width + 2) + "}" + \
-            "{containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-            "{containerPVCQuantity:>" + str(PodListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{containerPVCRequests:>" + str(PodListItem.containerPVCRequests_width + 2) + "}"
+            "{containerName:<" + str(ContainerListItem.containerName_width + 2) + "}" + \
+            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+            "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
+            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         if with_changes:
             template = template + \
                        "  " + \
                        "{change:<18}" + \
-                       "{ref_containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-                       "{ref_containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-                       "{ref_containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-                       "{ref_containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-                       "{ref_containerPVCQuantity:>" + str(PodListItem.containerPVCQuantity_width + 2) + "}" + \
-                       "{ref_containerPVCRequests:>" + str(PodListItem.containerPVCRequests_width + 2) + "}"
+                       "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+                       "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+                       "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                       "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+                       "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
+                       "{ref_containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         # logger.info("{}".format(self.fields))
 
@@ -234,28 +234,28 @@ class PodListItem:
     def get_tree_columns_width(self, with_changes: bool):
         container_indent = 6
 
-        pod_width = 4 + 13 + (PodListItem.podName_width + 2)
-        container_width = container_indent + (4 + 2 + 1) + (PodListItem.containerName_width + 2)
+        pod_width = 4 + 13 + (ContainerListItem.podName_width + 2)
+        container_width = container_indent + (4 + 2 + 1) + (ContainerListItem.containerName_width + 2)
         item_width = max(pod_width, container_width)
 
         resources_width = \
-            (PodListItem.containerCPURequests_width + 2) + \
-            (PodListItem.containerCPULimits_width + 2) + \
-            (PodListItem.containerMemoryRequests_width + 2) + \
-            (PodListItem.containerMemoryLimits_width + 2) + \
-            (PodListItem.containerPVCQuantity_width + 2) + \
-            (PodListItem.containerPVCRequests_width + 2)
+            (ContainerListItem.containerCPURequests_width + 2) + \
+            (ContainerListItem.containerCPULimits_width + 2) + \
+            (ContainerListItem.containerMemoryRequests_width + 2) + \
+            (ContainerListItem.containerMemoryLimits_width + 2) + \
+            (ContainerListItem.containerPVCQuantity_width + 2) + \
+            (ContainerListItem.containerPVCRequests_width + 2)
 
         if with_changes:
             resources_width = resources_width + \
                               2 + \
                               18 + \
-                              (PodListItem.containerCPURequests_width + 2) + \
-                              (PodListItem.containerCPULimits_width + 2) + \
-                              (PodListItem.containerMemoryRequests_width + 2) + \
-                              (PodListItem.containerMemoryLimits_width + 2) + \
-                              (PodListItem.containerPVCQuantity_width + 2) + \
-                              (PodListItem.containerPVCRequests_width + 2)
+                              (ContainerListItem.containerCPURequests_width + 2) + \
+                              (ContainerListItem.containerCPULimits_width + 2) + \
+                              (ContainerListItem.containerMemoryRequests_width + 2) + \
+                              (ContainerListItem.containerMemoryLimits_width + 2) + \
+                              (ContainerListItem.containerPVCQuantity_width + 2) + \
+                              (ContainerListItem.containerPVCRequests_width + 2)
 
         return container_indent, item_width, resources_width
 
@@ -265,8 +265,8 @@ class PodListItem:
         # Calculating column widths
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
 
-        # pod_width = 4 + 13 + (PodListItem.podName_width + 2)
-        # container_width = container_indent + (4 + 2 + 1) + (PodListItem.containerName_width + 2)
+        # pod_width = 4 + 13 + (ContainerListItem.podName_width + 2)
+        # container_width = container_indent + (4 + 2 + 1) + (ContainerListItem.containerName_width + 2)
         # item_width = max(pod_width, container_width)
 
         podName_width = item_width - 4 - 13 - 2
@@ -280,7 +280,7 @@ class PodListItem:
                 "{podGlobalIndex:<4}" + \
                 "{workloadType:<13}" + \
                 "{podName:<" + str(podName_width + 2) + "}"
-            # "{appName:<" + str(PodListItem.appName_width + 2) + "}" + \
+            # "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
 
             pod_template = self.decorate_changes(pod_template, is_pod_only=True)
             pod_template = pod_template + '\n'
@@ -289,23 +289,23 @@ class PodListItem:
             " " * container_indent + \
             "({containerType:<4}) " + \
             "{containerName:<" + str(containerName_width + 2) + "}" + \
-            "{containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-            "{containerPVCQuantity:>" + str(PodListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{containerPVCRequests:>" + str(PodListItem.containerPVCRequests_width + 2) + "}"
+            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+            "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
+            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         if with_changes:
             container_template = container_template + \
                                  "  " + \
                                  "{change:<18}" + \
-                                 "{ref_containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-                                 "{ref_containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-                                 "{ref_containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-                                 "{ref_containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-                                 "{ref_containerPVCQuantity:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-                                 "{ref_containerPVCRequests:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}"
+                                 "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+                                 "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+                                 "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                                 "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+                                 "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                                 "{ref_containerPVCRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
         # " {containerKey}"
 
         container_template = self.decorate_changes(container_template, is_pod_only=False)
@@ -351,7 +351,7 @@ class PodListItem:
         ])
 
 
-class PodListLine(PodListItem):
+class ContainerListLine(ContainerListItem):
     def __init__(self):
         super().__init__()
 
@@ -360,34 +360,34 @@ class PodListLine(PodListItem):
 
         # Note: q-ty of dashes must correspond to size of fields
         self.fields["appIndex"] = "-" * 4
-        self.fields["appName"] = "-" * (PodListItem.appName_width + 2)
+        self.fields["appName"] = "-" * (ContainerListItem.appName_width + 2)
         self.fields["workloadType"] = "-" * 13
         self.fields["podGlobalIndex"] = "-" * 4
-        self.fields["podName"] = "-" * (PodListItem.podName_width + 2)
+        self.fields["podName"] = "-" * (ContainerListItem.podName_width + 2)
         self.fields["containerType"] = "-" * 7
-        self.fields["containerName"] = "-" * (PodListItem.containerName_width + 2)
-        self.fields["containerCPURequests"] = "-" * (PodListItem.containerCPURequests_width + 2)
-        self.fields["containerCPULimits"] = "-" * (PodListItem.containerCPULimits_width + 2)
-        self.fields["containerMemoryRequests"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["containerMemoryLimits"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
-        self.fields["containerPVCQuantity"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["containerPVCRequests"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
+        self.fields["containerName"] = "-" * (ContainerListItem.containerName_width + 2)
+        self.fields["containerCPURequests"] = "-" * (ContainerListItem.containerCPURequests_width + 2)
+        self.fields["containerCPULimits"] = "-" * (ContainerListItem.containerCPULimits_width + 2)
+        self.fields["containerMemoryRequests"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
+        self.fields["containerMemoryLimits"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
+        self.fields["containerPVCQuantity"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
+        self.fields["containerPVCRequests"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
 
         self.fields["change"] = "-" * 18
 
-        self.fields["ref_containerCPURequests"] = "-" * (PodListItem.containerCPURequests_width + 2)
-        self.fields["ref_containerCPULimits"] = "-" * (PodListItem.containerCPULimits_width + 2)
-        self.fields["ref_containerMemoryRequests"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["ref_containerMemoryLimits"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
-        self.fields["ref_containerPVCQuantity"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["ref_containerPVCRequests"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
+        self.fields["ref_containerCPURequests"] = "-" * (ContainerListItem.containerCPURequests_width + 2)
+        self.fields["ref_containerCPULimits"] = "-" * (ContainerListItem.containerCPULimits_width + 2)
+        self.fields["ref_containerMemoryRequests"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
+        self.fields["ref_containerMemoryLimits"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
+        self.fields["ref_containerPVCQuantity"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
+        self.fields["ref_containerPVCRequests"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
 
     def print_tree(self, raw_units: bool, prev_item, with_changes: bool):
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
         print('-' * (item_width + resources_width))
 
 
-class PodListHeader(PodListItem):
+class ContainerListHeader(ContainerListItem):
     def __init__(self):
         super().__init__()
 
@@ -426,35 +426,35 @@ class PodListHeader(PodListItem):
 
         template = \
             "{item_txt:" + str(item_width) + "}" + \
-            "{containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-            "{containerPVCQuantity:>" + str(PodListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{containerPVCRequests:>" + str(PodListItem.containerPVCRequests_width + 2) + "}"
+            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+            "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
+            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         if with_changes:
             template = template + \
                        "  " + \
                        "{change:<18}" + \
-                       "{ref_containerCPURequests:>" + str(PodListItem.containerCPURequests_width + 2) + "}" + \
-                       "{ref_containerCPULimits:>" + str(PodListItem.containerCPULimits_width + 2) + "}" + \
-                       "{ref_containerMemoryRequests:>" + str(PodListItem.containerMemoryRequests_width + 2) + "}" + \
-                       "{ref_containerMemoryLimits:>" + str(PodListItem.containerMemoryLimits_width + 2) + "}" + \
-                       "{ref_containerPVCQuantity:>" + str(PodListItem.containerPVCQuantity_width + 2) + "}" + \
-                       "{ref_containerPVCRequests:>" + str(PodListItem.containerPVCRequests_width + 2) + "}"
+                       "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+                       "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+                       "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                       "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+                       "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
+                       "{ref_containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         print(template.format(**formatted_fields))
 
 
-class PodList:
-    items: List[PodListItem] = list()
+class KubernetesResourceSet:
+    items: List[ContainerListItem] = list()
 
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.items: List[PodListItem] = list()
+        self.items: List[ContainerListItem] = list()
 
     def sort(self):
         sorted_items = sorted(self.items, key=lambda item: item.fields['containerKey'])
@@ -494,8 +494,8 @@ class PodList:
             # TODO: PVC size
 
     # Note: each field in criteria is a regex
-    def filter(self, criteria: PodListItem):
-        r = PodList()
+    def filter(self, criteria: ContainerListItem):
+        r = KubernetesResourceSet()
         for item in self.items:
             matches = True
             for field in ["workloadType", "podName", "containerType", "containerName"]:
@@ -506,8 +506,8 @@ class PodList:
 
         return r
 
-    def get_resources_total(self, with_changes: bool) -> PodListItem:
-        r = PodListItem()
+    def get_resources_total(self, with_changes: bool) -> ContainerListItem:
+        r = ContainerListItem()
 
         pod_count = 0
         container_count = 0
@@ -555,55 +555,55 @@ class PodList:
 
     def set_optimal_field_width(self, raw_units: bool):
         # Minimum width
-        PodListItem.appName_width = 12
-        PodListItem.podName_width = 12
-        PodListItem.containerName_width = 22
-        PodListItem.containerCPURequests_width = 6
-        PodListItem.containerCPULimits_width = 6
-        PodListItem.containerMemoryRequests_width = 6
-        PodListItem.containerMemoryLimits_width = 6
+        ContainerListItem.appName_width = 12
+        ContainerListItem.podName_width = 12
+        ContainerListItem.containerName_width = 22
+        ContainerListItem.containerCPURequests_width = 6
+        ContainerListItem.containerCPULimits_width = 6
+        ContainerListItem.containerMemoryRequests_width = 6
+        ContainerListItem.containerMemoryLimits_width = 6
 
-        PodListItem.containerPVCList_width = 4
-        PodListItem.containerPVCQuantity_width = 6
-        PodListItem.containerPVCRequests_width = 6
+        ContainerListItem.containerPVCList_width = 4
+        ContainerListItem.containerPVCQuantity_width = 6
+        ContainerListItem.containerPVCRequests_width = 6
         # Note: assuming that for ref_* items width will be the same
 
         for item in self.items:
-            PodListItem.appName_width = max(PodListItem.appName_width, len(item.fields['appName']))
-            PodListItem.podName_width = max(PodListItem.podName_width, len(item.fields['podName']))
-            PodListItem.containerName_width = max(PodListItem.containerName_width, len(item.fields['containerName']))
-            PodListItem.containerCPURequests_width = \
-                max(PodListItem.containerCPURequests_width,
+            ContainerListItem.appName_width = max(ContainerListItem.appName_width, len(item.fields['appName']))
+            ContainerListItem.podName_width = max(ContainerListItem.podName_width, len(item.fields['podName']))
+            ContainerListItem.containerName_width = max(ContainerListItem.containerName_width, len(item.fields['containerName']))
+            ContainerListItem.containerCPURequests_width = \
+                max(ContainerListItem.containerCPURequests_width,
                     len(res_mem_bytes_to_str_1024(item.fields['containerCPURequests'], raw_units))
                     )
-            PodListItem.containerCPULimits_width = \
-                max(PodListItem.containerCPULimits_width,
+            ContainerListItem.containerCPULimits_width = \
+                max(ContainerListItem.containerCPULimits_width,
                     len(res_mem_bytes_to_str_1024(item.fields['containerCPULimits'], raw_units))
                     )
-            PodListItem.containerMemoryRequests_width = \
-                max(PodListItem.containerMemoryRequests_width,
+            ContainerListItem.containerMemoryRequests_width = \
+                max(ContainerListItem.containerMemoryRequests_width,
                     len(res_mem_bytes_to_str_1024(item.fields['containerMemoryRequests'], raw_units))
                     )
-            PodListItem.containerMemoryLimits_width = \
-                max(PodListItem.containerMemoryLimits_width,
+            ContainerListItem.containerMemoryLimits_width = \
+                max(ContainerListItem.containerMemoryLimits_width,
                     len(res_mem_bytes_to_str_1024(item.fields['containerMemoryLimits'], raw_units))
                     )
 
-            PodListItem.containerPVCList_width = \
-                max(PodListItem.containerPVCList_width,
+            ContainerListItem.containerPVCList_width = \
+                max(ContainerListItem.containerPVCList_width,
                     len("{}".format(item.fields['containerPVCList']))
                     )
-            # PodListItem.containerPVCQuantity_width = 4
-            PodListItem.containerPVCRequests_width = \
-                max(PodListItem.containerPVCRequests_width,
+            # ContainerListItem.containerPVCQuantity_width = 4
+            ContainerListItem.containerPVCRequests_width = \
+                max(ContainerListItem.containerPVCRequests_width,
                     len(res_mem_bytes_to_str_1024(item.fields['containerPVCRequests'], raw_units))
                     )
 
     def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
         self.set_optimal_field_width(raw_units)
 
-        PodListHeader().print_table(raw_units, None, with_changes)
-        PodListLine().print_table(raw_units, None, with_changes)
+        ContainerListHeader().print_table(raw_units, None, with_changes)
+        ContainerListLine().print_table(raw_units, None, with_changes)
 
         prev_item = None
         for item in self.items:
@@ -611,7 +611,7 @@ class PodList:
             if pretty:
                 prev_item = item
 
-        PodListLine().print_table(raw_units, None, with_changes)
+        ContainerListLine().print_table(raw_units, None, with_changes)
 
         # All total
         total = self.get_resources_total(with_changes=with_changes)
@@ -620,7 +620,7 @@ class PodList:
         total.print_table(raw_units, None, with_changes)
 
         # Non-jobs, non-init containers
-        running = self.filter(PodListItem(
+        running = self.filter(ContainerListItem(
             {
                 "workloadType": '^(?!Job).*$',
                 "containerType": "^(?!init).*$"
@@ -634,8 +634,8 @@ class PodList:
     def print_tree(self, raw_units: bool, with_changes: bool):
         self.set_optimal_field_width(raw_units)
 
-        PodListHeader().print_tree(raw_units, None, with_changes)
-        PodListLine().print_tree(raw_units, None, with_changes)
+        ContainerListHeader().print_tree(raw_units, None, with_changes)
+        ContainerListLine().print_tree(raw_units, None, with_changes)
 
         prev_item = None
         for item in self.items:
@@ -643,7 +643,7 @@ class PodList:
             prev_item = item
 
     def print_csv(self):
-        PodListHeader().print_csv()
+        ContainerListHeader().print_csv()
 
         for row in self.items:
             row.print_csv()
@@ -655,7 +655,7 @@ class PodList:
             i = i - 1
             fields = self.items[i].fields
         else:
-            self.items.append(PodListItem())
+            self.items.append(ContainerListItem())
             fields = self.items[i].fields
 
             # Pod-specific information
@@ -679,7 +679,7 @@ class PodList:
             i = i - 1
             fields = self.items[i].fields
         else:
-            self.items.append(PodListItem())
+            self.items.append(ContainerListItem())
             fields = self.items[i].fields
 
             fields["podGlobalIndex"] = self.items[i - 1].fields["podGlobalIndex"]
@@ -832,7 +832,7 @@ class PodList:
             container_index_in_pod = container_index_in_pod + 1
             self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
 
-    def get_first_by_key(self, key) -> Union[PodListItem, None]:
+    def get_first_by_key(self, key) -> Union[ContainerListItem, None]:
         for item in self.items:
             if item.fields['containerKey'] == key:
                 return item
@@ -945,8 +945,8 @@ def parse_args():
     args = parser.parse_args()
 
 
-def parse_filter_expression(criteria: str) -> PodListItem:
-    r = PodListItem()
+def parse_filter_expression(criteria: str) -> ContainerListItem:
+    r = ContainerListItem()
 
     if criteria is not None:
         for criterion in criteria.split(','):
@@ -1075,8 +1075,8 @@ def main():
 
     parse_args()
 
-    all_pods = PodList()
-    ref_pods = PodList()
+    all_pods = KubernetesResourceSet()
+    ref_pods = KubernetesResourceSet()
 
     with_changes = args.reference is not None
 
