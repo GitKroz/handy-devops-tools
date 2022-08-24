@@ -322,28 +322,28 @@ class PodListLine(PodListItem):
     def __init__(self):
         super().__init__()
 
-        self.fields["containerKey"] = "─" * 4
-        self.fields["podKey"] = "─" * 4
+        self.fields["containerKey"] = "-" * 4
+        self.fields["podKey"] = "-" * 4
 
         # Note: q-ty of dashes must correspond to size of fields
-        self.fields["appIndex"] = "─" * 4
-        self.fields["appName"] = "─" * (PodListItem.appName_width + 2)
-        self.fields["workloadType"] = "─" * 13
-        self.fields["podGlobalIndex"] = "─" * 4
-        self.fields["podName"] = "─" * (PodListItem.podName_width + 2)
-        self.fields["containerType"] = "─" * 7
-        self.fields["containerName"] = "─" * (PodListItem.containerName_width + 2)
-        self.fields["containerCPURequests"] = "─" * (PodListItem.containerCPURequests_width + 2)
-        self.fields["containerCPULimits"] = "─" * (PodListItem.containerCPULimits_width + 2)
-        self.fields["containerMemoryRequests"] = "─" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["containerMemoryLimits"] = "─" * (PodListItem.containerMemoryLimits_width + 2)
+        self.fields["appIndex"] = "-" * 4
+        self.fields["appName"] = "-" * (PodListItem.appName_width + 2)
+        self.fields["workloadType"] = "-" * 13
+        self.fields["podGlobalIndex"] = "-" * 4
+        self.fields["podName"] = "-" * (PodListItem.podName_width + 2)
+        self.fields["containerType"] = "-" * 7
+        self.fields["containerName"] = "-" * (PodListItem.containerName_width + 2)
+        self.fields["containerCPURequests"] = "-" * (PodListItem.containerCPURequests_width + 2)
+        self.fields["containerCPULimits"] = "-" * (PodListItem.containerCPULimits_width + 2)
+        self.fields["containerMemoryRequests"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
+        self.fields["containerMemoryLimits"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
 
-        self.fields["change"] = "─" * 18
+        self.fields["change"] = "-" * 18
 
-        self.fields["ref_containerCPURequests"] = "─" * (PodListItem.containerCPURequests_width + 2)
-        self.fields["ref_containerCPULimits"] = "─" * (PodListItem.containerCPULimits_width + 2)
-        self.fields["ref_containerMemoryRequests"] = "─" * (PodListItem.containerMemoryRequests_width + 2)
-        self.fields["ref_containerMemoryLimits"] = "─" * (PodListItem.containerMemoryLimits_width + 2)
+        self.fields["ref_containerCPURequests"] = "-" * (PodListItem.containerCPURequests_width + 2)
+        self.fields["ref_containerCPULimits"] = "-" * (PodListItem.containerCPULimits_width + 2)
+        self.fields["ref_containerMemoryRequests"] = "-" * (PodListItem.containerMemoryRequests_width + 2)
+        self.fields["ref_containerMemoryLimits"] = "-" * (PodListItem.containerMemoryLimits_width + 2)
 
     def print_tree(self, raw_units: bool, prev_item, with_changes: bool):
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
