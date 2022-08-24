@@ -118,14 +118,14 @@ class PodListItem:
             formatted_fields["containerCPURequests"] = res_cpu_millicores_to_str(formatted_fields["containerCPURequests"], raw_units)
             formatted_fields["containerCPULimits"] = res_cpu_millicores_to_str(formatted_fields["containerCPULimits"], raw_units)
 
-            formatted_fields["containerMemoryRequests"] = res_mem_bytes_to_millicores(formatted_fields["containerMemoryRequests"], raw_units)
-            formatted_fields["containerMemoryLimits"] = res_mem_bytes_to_millicores(formatted_fields["containerMemoryLimits"], raw_units)
+            formatted_fields["containerMemoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["containerMemoryRequests"], raw_units)
+            formatted_fields["containerMemoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["containerMemoryLimits"], raw_units)
 
             formatted_fields["ref_containerCPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_containerCPURequests"], raw_units)
             formatted_fields["ref_containerCPULimits"] = res_cpu_millicores_to_str(formatted_fields["ref_containerCPULimits"], raw_units)
 
-            formatted_fields["ref_containerMemoryRequests"] = res_mem_bytes_to_millicores(formatted_fields["ref_containerMemoryRequests"], raw_units)
-            formatted_fields["ref_containerMemoryLimits"] = res_mem_bytes_to_millicores(formatted_fields["ref_containerMemoryLimits"], raw_units)
+            formatted_fields["ref_containerMemoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerMemoryRequests"], raw_units)
+            formatted_fields["ref_containerMemoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerMemoryLimits"], raw_units)
 
         return formatted_fields
 
@@ -510,18 +510,22 @@ class PodList:
             PodListItem.appName_width = max(PodListItem.appName_width, len(item.fields['appName']))
             PodListItem.podName_width = max(PodListItem.podName_width, len(item.fields['podName']))
             PodListItem.containerName_width = max(PodListItem.containerName_width, len(item.fields['containerName']))
-            PodListItem.containerCPURequests_width = max(PodListItem.containerCPURequests_width,
-                                                         len(res_mem_bytes_to_millicores(
-                                                             item.fields['containerCPURequests'], raw_units)))
-            PodListItem.containerCPULimits_width = max(PodListItem.containerCPULimits_width,
-                                                       len(res_mem_bytes_to_millicores(
-                                                           item.fields['containerCPULimits'], raw_units)))
-            PodListItem.containerMemoryRequests_width = max(PodListItem.containerMemoryRequests_width,
-                                                            len(res_mem_bytes_to_millicores(
-                                                                item.fields['containerMemoryRequests'], raw_units)))
-            PodListItem.containerMemoryLimits_width = max(PodListItem.containerMemoryLimits_width,
-                                                          len(res_mem_bytes_to_millicores(
-                                                              item.fields['containerMemoryLimits'], raw_units)))
+            PodListItem.containerCPURequests_width = \
+                max(PodListItem.containerCPURequests_width,
+                    len(res_mem_bytes_to_str_1024(item.fields['containerCPURequests'], raw_units))
+                    )
+            PodListItem.containerCPULimits_width = \
+                max(PodListItem.containerCPULimits_width,
+                    len(res_mem_bytes_to_str_1024(item.fields['containerCPULimits'], raw_units))
+                    )
+            PodListItem.containerMemoryRequests_width = \
+                max(PodListItem.containerMemoryRequests_width,
+                    len(res_mem_bytes_to_str_1024(item.fields['containerMemoryRequests'], raw_units))
+                    )
+            PodListItem.containerMemoryLimits_width = \
+                max(PodListItem.containerMemoryLimits_width,
+                    len(res_mem_bytes_to_str_1024(item.fields['containerMemoryLimits'], raw_units))
+                    )
 
     def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
         self.set_optimal_field_width(raw_units)
@@ -932,7 +936,7 @@ def res_cpu_millicores_to_str(value: int, raw_units: bool) -> str:
     return r
 
 
-def res_mem_bytes_to_millicores(value: int, raw_units: bool) -> str:
+def res_mem_bytes_to_str_1024(value: int, raw_units: bool) -> str:
     r = str(value)
 
     if not raw_units:
