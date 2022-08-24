@@ -733,9 +733,9 @@ class PodList:
                             fields['containerPVCList'].add(volume['persistentVolumeClaim']['claimName'])
 
                 if volume_type is None:
-                    raise RuntimeError("Volume mount '{}' not found in pod volumes".format(mount['name']))
+                    raise RuntimeError("Volume mount '{}' not found in pod_descpod volumes".format(mount['name']))
 
-    def read_pods_desc_from_namespace(self, namespace: str) -> JSON:
+    def read_res_desc_from_cluster(self, namespace: str) -> JSON:
         cmd = ['cat', namespace]
         cmd_str = ' '.join(cmd)
 
@@ -751,78 +751,86 @@ class PodList:
 
         return pods
 
-    def read_pods_desc_from_file(self, filename: str) -> JSON:
+    def read_res_desc_from_file(self, filename: str) -> JSON:
         with open(filename) as podsFile:
-            pods = json.load(podsFile)
+            res_desc = json.load(podsFile)
 
-        return pods
+        return res_desc
 
-    def read_pods_desc(self, source: str) -> JSON:
+    def read_res_desc(self, source: str) -> JSON:
         if source[:1] == "@":
-            pods = self.read_pods_desc_from_namespace(namespace=source[1:])
+            res_desc = self.read_res_desc_from_cluster(namespace=source[1:])
         else:
-            pods = self.read_pods_desc_from_file(filename=source)
+            res_desc = self.read_res_desc_from_file(filename=source)
 
         try:
-            if pods['apiVersion'] != 'v1':
-                raise RuntimeError("Unsupported input format: expecting 'apiVersion': 'v1', but '{}' is given".format(pods['apiVersion']))
+            if res_desc['apiVersion'] != 'v1':
+                raise RuntimeError("Unsupported input format: expecting 'apiVersion': 'v1', but '{}' is given".format(res_desc['apiVersion']))
         except KeyError:
             raise RuntimeError("Unsupported input format: expecting apiVersion 'v1', but no apiVersion is given")
 
-        return pods
+        return res_desc
 
-    def load(self, source: str):
+    def load(self, source: str) -> None:
         global logger
+
+        context = {'source': source}
+
+        logger.debug("Parsing {}".format(context))
 
         self.reset()
 
-        pods_desc_json: JSON = self.read_pods_desc(source=source)
+        res_desc: JSON = self.read_res_desc(source=source)
 
-        pod_index_in_json = -1
-        for pod in pods_desc_json["items"]:
-            pod_index_in_json = pod_index_in_json + 1
+        res_index = 0
+        for res_item_desc in res_desc["items"]:
+            context_res_item = {**context, 'index': res_index}
 
-            fields = self.add_pod()
-
-            if pod["kind"] != "Pod":
-                fields["podName"] = "({})".format(pod["kind"])
-                continue
-
-            fields["podName"] = pod["metadata"]["name"]
-
-            # logger.info("Parsing pod '{}'...".format(fields["podName"]))
-            # logger.info("metadata = {}".format(pod["metadata"]))
-
-            if len(pod["metadata"]["ownerReferences"]) != 1:
-                raise RuntimeError("Pod #{} '{}' has {} owner references; exactly one is expected".format(
-                    pod_index_in_json,
-                    pod["metadata"]["name"],
-                    len(pod["metadata"]["ownerReferences"])
-                ))
-            fields["workloadType"] = pod["metadata"]["ownerReferences"][0]["kind"]
-            if 'app' in pod["metadata"]["labels"]:
-                fields["appName"] = pod["metadata"]["labels"]["app"]
+            if res_item_desc['kind'] == 'Pod':
+                self.load_pod(pod_desc=res_item_desc, context=context_res_item)
             else:
-                fields["appName"] = pod["metadata"]["labels"]["app.kubernetes.io/name"]
+                raise RuntimeError("Unexpected resource kind '{}'. Context: {}".format(res_item_desc['kind'], context_res_item))
 
-            try:
-                pod_volumes = pod['spec']['volumes']
-            except KeyError:
-                pod_volumes = []
-
-            if "initContainers" in pod["spec"]:
-                container_index_in_pod = -1
-                for container in pod["spec"]["initContainers"]:
-                    container_index_in_pod = container_index_in_pod + 1
-                    self.parse_container_resources(container=container, containerType="init", pod_volumes=pod_volumes)
-
-            container_index_in_pod = -1
-            for container in pod["spec"]["containers"]:
-                container_index_in_pod = container_index_in_pod + 1
-                self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
+            res_index = res_index + 1
 
         self.renew_replica_indices()
         self.renew_pvc_information()
+
+    def load_pod(self, pod_desc: JSON, context: Dict) -> None:
+        logger.debug("Parsing pod {}".format(context))
+
+        fields = self.add_pod()
+
+        fields["podName"] = pod_desc["metadata"]["name"]
+
+        context = {**context, 'podName': fields["podName"]}
+
+        if len(pod_desc["metadata"]["ownerReferences"]) != 1:
+            raise RuntimeError("Pod has {} owner references; exactly one is expected. Context: {}".format(
+                len(pod_desc["metadata"]["ownerReferences"]),
+                context
+            ))
+        fields["workloadType"] = pod_desc["metadata"]["ownerReferences"][0]["kind"]
+        if 'app' in pod_desc["metadata"]["labels"]:
+            fields["appName"] = pod_desc["metadata"]["labels"]["app"]
+        else:
+            fields["appName"] = pod_desc["metadata"]["labels"]["app.kubernetes.io/name"]
+
+        try:
+            pod_volumes = pod_desc['spec']['volumes']
+        except KeyError:
+            pod_volumes = []
+
+        if "initContainers" in pod_desc["spec"]:
+            container_index_in_pod = -1
+            for container in pod_desc["spec"]["initContainers"]:
+                container_index_in_pod = container_index_in_pod + 1
+                self.parse_container_resources(container=container, containerType="init", pod_volumes=pod_volumes)
+
+        container_index_in_pod = -1
+        for container in pod_desc["spec"]["containers"]:
+            container_index_in_pod = container_index_in_pod + 1
+            self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
 
     def get_first_by_key(self, key) -> Union[PodListItem, None]:
         for item in self.items:
