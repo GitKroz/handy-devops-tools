@@ -58,7 +58,7 @@ class ContainerListItem:
             "containerKey": "",
             "podKey": "",
 
-            "podGlobalIndex": 0,  # int - global numeration of pods
+            "podGlobalIndex": 0,  # int - global numeration of containers
             "appIndex": "",  # str - index within Application; is a suffix in the beginning
 
             "workloadType": "",  # DaemonSet, ReplicaSet, StatefulSet, Job
@@ -447,14 +447,41 @@ class ContainerListHeader(ContainerListItem):
         print(template.format(**formatted_fields))
 
 
+class PVCListItem:
+    fields: Dict = {}
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self) -> None:
+        self.fields = {
+            'key': '',
+            'index': 0,  # int - global numeration of PVCs
+            'uid': '',  # str
+
+            'name': '',  # str - used for binding with containers
+            'storageClassName': '',  # str
+
+            'containerList': set(),  # List of strings - keys of containers using this PVC
+            'containerQuantity': int,  # int, containers using this PVC
+
+            'requests': 0  # int, bytes
+        }
+
+    def make_key(self):
+        self.fields['key'] = self.fields['name']
+
+
 class KubernetesResourceSet:
     containers: List[ContainerListItem] = list()
+    pvcs: List[PVCListItem] = list()
 
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.containers: List[ContainerListItem] = list()
+        self.containers = list()
+        self.pvcs = list()
 
     def sort(self):
         sorted_containers = sorted(self.containers, key=lambda container: container.fields['containerKey'])
@@ -690,6 +717,16 @@ class KubernetesResourceSet:
 
         return fields
 
+    def add_pvc(self) -> PVCListItem:  # TODO: align with add_pods and add_containers
+        i = len(self.pvcs)
+
+        self.pvcs.append(PVCListItem())
+        pvc = self.pvcs[i]
+
+        pvc.fields['index'] = i
+
+        return pvc
+
     def parse_container_resources(self, container: JSON, containerType: str, pod_volumes: JSON):
         fields = self.add_container()
 
@@ -788,8 +825,10 @@ class KubernetesResourceSet:
 
             if res_item_desc['kind'] == 'Pod':
                 self.load_pod(pod_desc=res_item_desc, context=context_res_item)
+            elif res_item_desc['kind'] == 'PersistentVolumeClaim':
+                self.load_pvc(pvc_desc=res_item_desc, context=context_res_item)
             else:
-                raise RuntimeError("Unexpected resource kind '{}'. Context: {}".format(res_item_desc['kind'], context_res_item))
+                raise RuntimeError("Unexpected resource kind: {}. Context: {}".format(res_item_desc['kind'], context_res_item))
 
             res_index = res_index + 1
 
@@ -832,7 +871,40 @@ class KubernetesResourceSet:
             container_index_in_pod = container_index_in_pod + 1
             self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
 
-    def get_first_by_key(self, key) -> Union[ContainerListItem, None]:
+    def load_pvc(self, pvc_desc: JSON, context: Dict) -> None:
+        logger.debug("Parsing PVC {}".format(context))
+
+        pvc = self.add_pvc()  # Note: this will fill index
+
+        # TODO: Delete
+        """
+            'key': '',
+            'index': 0,  # int - global numeration of PVCs
+            'uid': '',  # str
+
+            'name': '',  # str - used for binding with containers
+            'storageClassName': '',  # str
+
+            'containerList': set(),  # List of strings - keys of containers using this PVC
+            'containerQuantity': int,  # int, containers using this PVC
+
+            'requests': 0  # int, bytes
+
+        """
+
+        pvc.fields['name'] = pvc_desc['metadata']['name']
+
+        context = {**context, 'pvcName': pvc.fields['name']}
+
+        pvc.fields['uid'] = pvc_desc['metadata']['uid']
+        pvc.fields['storageClassName'] = pvc_desc['spec']['storageClassName']
+        pvc.fields['requests'] = res_mem_str_to_bytes(pvc_desc['spec']['resources']['requests']['storage'])
+
+        pvc.make_key()
+
+
+    # Get FIRST container by key
+    def get_container_by_key(self, key) -> Union[ContainerListItem, None]:
         for container in self.containers:
             if container.fields['containerKey'] == key:
                 return container
@@ -842,7 +914,7 @@ class KubernetesResourceSet:
     def compare(self, ref_res):
         # Added and modified
         for container in self.containers:
-            ref_container = ref_res.get_first_by_key(container.fields['containerKey'])
+            ref_container = ref_res.get_container_by_key(container.fields['containerKey'])
 
             if ref_container is None:
                 container.fields['change'] = 'New Container'
@@ -853,7 +925,7 @@ class KubernetesResourceSet:
 
         # Deleted
         for ref_container in ref_res.containers:
-            container = self.get_first_by_key(ref_container.fields['containerKey'])
+            container = self.get_container_by_key(ref_container.fields['containerKey'])
 
             if container is None:
                 self.containers.append(ref_container)
