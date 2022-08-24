@@ -105,15 +105,15 @@ class ContainerListItem:
     def is_decoration(self) -> bool:  # Header, Line etc
         return type(self.fields["podGlobalIndex"]) is not int and self.fields["podGlobalIndex"] != ""
 
-    def is_same_pod(self, item, trust_pod_key: bool = True) -> bool:
+    def is_same_pod(self, container, trust_pod_key: bool = True) -> bool:
         if trust_pod_key:
-            return item is not None and self.fields["podKey"] == item.fields["podKey"]
+            return container is not None and self.fields["podKey"] == container.fields["podKey"]
         else:
             # To be used in functions when key is being generated
-            return item is not None and self.fields["podName"] == item.fields["podName"]
+            return container is not None and self.fields["podName"] == container.fields["podName"]
 
-    def is_same_app(self, item) -> bool:
-        return item is not None and self.fields["appName"] == item.fields["appName"]
+    def is_same_app(self, container) -> bool:
+        return container is not None and self.fields["appName"] == container.fields["appName"]
 
     def is_deleted(self) -> bool:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
@@ -186,16 +186,16 @@ class ContainerListItem:
 
         return r
 
-    def print_table(self, raw_units: bool, prev_item, with_changes: bool):
+    def print_table(self, raw_units: bool, prev_container, with_changes: bool):
         formatted_fields = self.get_formatted_fields(raw_units)
 
-        # Skip application/workload values if it was contained in the previous item
-        if self.is_same_app(prev_item):
+        # Skip application/workload values if it was contained in the previous container
+        if self.is_same_app(prev_container):
             formatted_fields["workloadType"] = ""
             formatted_fields["appName"] = ""
 
-        # Skip pod values if it was contained in the previous item
-        if self.is_same_pod(prev_item):
+        # Skip pod values if it was contained in the previous container
+        if self.is_same_pod(prev_container):
             formatted_fields["podGlobalIndex"] = ""
             formatted_fields["podName"] = ""
 
@@ -259,7 +259,7 @@ class ContainerListItem:
 
         return container_indent, item_width, resources_width
 
-    def print_tree(self, raw_units: bool, prev_item, with_changes: bool):
+    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         formatted_fields = self.get_formatted_fields(raw_units)
 
         # Calculating column widths
@@ -274,7 +274,7 @@ class ContainerListItem:
 
         # Add special line for pods
         pod_template = ""
-        if not self.is_same_pod(prev_item):
+        if not self.is_same_pod(prev_container):
             # '\033[1;37m' +\
             pod_template = \
                 "{podGlobalIndex:<4}" + \
@@ -382,7 +382,7 @@ class ContainerListLine(ContainerListItem):
         self.fields["ref_containerPVCQuantity"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
         self.fields["ref_containerPVCRequests"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
 
-    def print_tree(self, raw_units: bool, prev_item, with_changes: bool):
+    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
         print('-' * (item_width + resources_width))
 
@@ -417,7 +417,7 @@ class ContainerListHeader(ContainerListItem):
         self.fields["ref_containerPVCQuantity"] = "rPVC_Q"
         self.fields["ref_containerPVCRequests"] = "rPVC_R"
 
-    def print_tree(self, raw_units: bool, prev_item, with_changes: bool):
+    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         formatted_fields = self.get_formatted_fields(raw_units)
 
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
@@ -448,61 +448,61 @@ class ContainerListHeader(ContainerListItem):
 
 
 class KubernetesResourceSet:
-    items: List[ContainerListItem] = list()
+    containers: List[ContainerListItem] = list()
 
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.items: List[ContainerListItem] = list()
+        self.containers: List[ContainerListItem] = list()
 
     def sort(self):
-        sorted_items = sorted(self.items, key=lambda item: item.fields['containerKey'])
-        self.items = sorted_items
+        sorted_containers = sorted(self.containers, key=lambda container: container.fields['containerKey'])
+        self.containers = sorted_containers
 
     # Important: this must NOT be run after compare, otherwise deleted pods will be identified as separate ones
     def renew_replica_indices(self):
-        for item in self.items:
-            appName_len = len(item.fields['appName'])
-            item.set_appIndex(item.fields['podName'][appName_len:])
+        for container in self.containers:
+            appName_len = len(container.fields['appName'])
+            container.set_appIndex(container.fields['podName'][appName_len:])
 
         self.sort()
 
         replica_global_index = 1
         replica_app_index = 1
 
-        prev_item = None
-        for item in self.items:
-            if prev_item is None:
-                prev_item = item
+        prev_container = None
+        for container in self.containers:
+            if prev_container is None:
+                prev_container = container
 
-            if not item.is_same_pod(prev_item, trust_pod_key=False):
+            if not container.is_same_pod(prev_container, trust_pod_key=False):
                 replica_global_index = replica_global_index + 1
 
                 replica_app_index = replica_app_index + 1
-                if not item.is_same_app(prev_item):
+                if not container.is_same_app(prev_container):
                     replica_app_index = 0
 
-            item.set_appIndex(str(replica_app_index).zfill(3))
-            item.fields['podGlobalIndex'] = replica_global_index
+            container.set_appIndex(str(replica_app_index).zfill(3))
+            container.fields['podGlobalIndex'] = replica_global_index
 
-            prev_item = item
+            prev_container = container
 
     def renew_pvc_information(self):
-        for item in self.items:
-            item.fields['containerPVCQuantity'] = len(item.fields['containerPVCList'])
+        for container in self.containers:
+            container.fields['containerPVCQuantity'] = len(container.fields['containerPVCList'])
             # TODO: PVC size
 
     # Note: each field in criteria is a regex
     def filter(self, criteria: ContainerListItem):
         r = KubernetesResourceSet()
-        for item in self.items:
+        for container in self.containers:
             matches = True
             for field in ["workloadType", "podName", "containerType", "containerName"]:
-                matches = matches and bool(re.search(criteria.fields[field], item.fields[field]))
+                matches = matches and bool(re.search(criteria.fields[field], container.fields[field]))
 
             if matches:
-                r.items.append(item)
+                r.containers.append(container)
 
         return r
 
@@ -512,34 +512,34 @@ class KubernetesResourceSet:
         pod_count = 0
         container_count = 0
 
-        prev_item = None
-        for item in self.items:
-            if item.is_deleted():  # TODO: review logic
+        prev_container = None
+        for container in self.containers:
+            if container.is_deleted():  # TODO: review logic
                 continue
 
             container_count = container_count + 1
-            if not item.is_same_pod(prev_item):
+            if not container.is_same_pod(prev_container):
                 pod_count = pod_count + 1
 
-            r.fields["containerCPURequests"] = r.fields["containerCPURequests"] + item.fields["containerCPURequests"]
-            r.fields["containerCPULimits"] = r.fields["containerCPULimits"] + item.fields["containerCPULimits"]
-            r.fields["containerMemoryRequests"] = r.fields["containerMemoryRequests"] + item.fields["containerMemoryRequests"]
-            r.fields["containerMemoryLimits"] = r.fields["containerMemoryLimits"] + item.fields["containerMemoryLimits"]
+            r.fields["containerCPURequests"] = r.fields["containerCPURequests"] + container.fields["containerCPURequests"]
+            r.fields["containerCPULimits"] = r.fields["containerCPULimits"] + container.fields["containerCPULimits"]
+            r.fields["containerMemoryRequests"] = r.fields["containerMemoryRequests"] + container.fields["containerMemoryRequests"]
+            r.fields["containerMemoryLimits"] = r.fields["containerMemoryLimits"] + container.fields["containerMemoryLimits"]
 
             # TODO: Re-make, since potentially single PVC may be connected to multiple pods
-            r.fields["containerPVCQuantity"] = r.fields["containerPVCQuantity"] + item.fields["containerPVCQuantity"]
-            r.fields["containerPVCRequests"] = r.fields["containerPVCRequests"] + item.fields["containerPVCRequests"]
+            r.fields["containerPVCQuantity"] = r.fields["containerPVCQuantity"] + container.fields["containerPVCQuantity"]
+            r.fields["containerPVCRequests"] = r.fields["containerPVCRequests"] + container.fields["containerPVCRequests"]
 
-            r.fields["ref_containerCPURequests"] = r.fields["ref_containerCPURequests"] + item.fields["ref_containerCPURequests"]
-            r.fields["ref_containerCPULimits"] = r.fields["ref_containerCPULimits"] + item.fields["ref_containerCPULimits"]
-            r.fields["ref_containerMemoryRequests"] = r.fields["ref_containerMemoryRequests"] + item.fields["ref_containerMemoryRequests"]
-            r.fields["ref_containerMemoryLimits"] = r.fields["ref_containerMemoryLimits"] + item.fields["ref_containerMemoryLimits"]
+            r.fields["ref_containerCPURequests"] = r.fields["ref_containerCPURequests"] + container.fields["ref_containerCPURequests"]
+            r.fields["ref_containerCPULimits"] = r.fields["ref_containerCPULimits"] + container.fields["ref_containerCPULimits"]
+            r.fields["ref_containerMemoryRequests"] = r.fields["ref_containerMemoryRequests"] + container.fields["ref_containerMemoryRequests"]
+            r.fields["ref_containerMemoryLimits"] = r.fields["ref_containerMemoryLimits"] + container.fields["ref_containerMemoryLimits"]
 
             # TODO: Re-make, since potentially single PVC may be connected to multiple pods
-            r.fields["ref_containerPVCQuantity"] = r.fields["ref_containerPVCQuantity"] + item.fields["ref_containerPVCQuantity"]
-            r.fields["ref_containerPVCRequests"] = r.fields["ref_containerPVCRequests"] + item.fields["ref_containerPVCRequests"]
+            r.fields["ref_containerPVCQuantity"] = r.fields["ref_containerPVCQuantity"] + container.fields["ref_containerPVCQuantity"]
+            r.fields["ref_containerPVCRequests"] = r.fields["ref_containerPVCRequests"] + container.fields["ref_containerPVCRequests"]
 
-            prev_item = item
+            prev_container = container
 
         r.fields["containerKey"] = ""
         r.fields["podKey"] = ""
@@ -566,37 +566,37 @@ class KubernetesResourceSet:
         ContainerListItem.containerPVCList_width = 4
         ContainerListItem.containerPVCQuantity_width = 6
         ContainerListItem.containerPVCRequests_width = 6
-        # Note: assuming that for ref_* items width will be the same
+        # Note: assuming that for ref_* fields width will be the same
 
-        for item in self.items:
-            ContainerListItem.appName_width = max(ContainerListItem.appName_width, len(item.fields['appName']))
-            ContainerListItem.podName_width = max(ContainerListItem.podName_width, len(item.fields['podName']))
-            ContainerListItem.containerName_width = max(ContainerListItem.containerName_width, len(item.fields['containerName']))
+        for container in self.containers:
+            ContainerListItem.appName_width = max(ContainerListItem.appName_width, len(container.fields['appName']))
+            ContainerListItem.podName_width = max(ContainerListItem.podName_width, len(container.fields['podName']))
+            ContainerListItem.containerName_width = max(ContainerListItem.containerName_width, len(container.fields['containerName']))
             ContainerListItem.containerCPURequests_width = \
                 max(ContainerListItem.containerCPURequests_width,
-                    len(res_mem_bytes_to_str_1024(item.fields['containerCPURequests'], raw_units))
+                    len(res_mem_bytes_to_str_1024(container.fields['containerCPURequests'], raw_units))
                     )
             ContainerListItem.containerCPULimits_width = \
                 max(ContainerListItem.containerCPULimits_width,
-                    len(res_mem_bytes_to_str_1024(item.fields['containerCPULimits'], raw_units))
+                    len(res_mem_bytes_to_str_1024(container.fields['containerCPULimits'], raw_units))
                     )
             ContainerListItem.containerMemoryRequests_width = \
                 max(ContainerListItem.containerMemoryRequests_width,
-                    len(res_mem_bytes_to_str_1024(item.fields['containerMemoryRequests'], raw_units))
+                    len(res_mem_bytes_to_str_1024(container.fields['containerMemoryRequests'], raw_units))
                     )
             ContainerListItem.containerMemoryLimits_width = \
                 max(ContainerListItem.containerMemoryLimits_width,
-                    len(res_mem_bytes_to_str_1024(item.fields['containerMemoryLimits'], raw_units))
+                    len(res_mem_bytes_to_str_1024(container.fields['containerMemoryLimits'], raw_units))
                     )
 
             ContainerListItem.containerPVCList_width = \
                 max(ContainerListItem.containerPVCList_width,
-                    len("{}".format(item.fields['containerPVCList']))
+                    len("{}".format(container.fields['containerPVCList']))
                     )
             # ContainerListItem.containerPVCQuantity_width = 4
             ContainerListItem.containerPVCRequests_width = \
                 max(ContainerListItem.containerPVCRequests_width,
-                    len(res_mem_bytes_to_str_1024(item.fields['containerPVCRequests'], raw_units))
+                    len(res_mem_bytes_to_str_1024(container.fields['containerPVCRequests'], raw_units))
                     )
 
     def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
@@ -605,11 +605,11 @@ class KubernetesResourceSet:
         ContainerListHeader().print_table(raw_units, None, with_changes)
         ContainerListLine().print_table(raw_units, None, with_changes)
 
-        prev_item = None
-        for item in self.items:
-            item.print_table(raw_units, prev_item, with_changes)
+        prev_container = None
+        for container in self.containers:
+            container.print_table(raw_units, prev_container, with_changes)
             if pretty:
-                prev_item = item
+                prev_container = container
 
         ContainerListLine().print_table(raw_units, None, with_changes)
 
@@ -637,56 +637,56 @@ class KubernetesResourceSet:
         ContainerListHeader().print_tree(raw_units, None, with_changes)
         ContainerListLine().print_tree(raw_units, None, with_changes)
 
-        prev_item = None
-        for item in self.items:
-            item.print_tree(raw_units, prev_item, with_changes=with_changes)
-            prev_item = item
+        prev_container = None
+        for container in self.containers:
+            container.print_tree(raw_units, prev_container, with_changes=with_changes)
+            prev_container = container
 
     def print_csv(self):
         ContainerListHeader().print_csv()
 
-        for row in self.items:
+        for row in self.containers:
             row.print_csv()
 
-    def add_pod(self) -> Dict:  # Returns fields of newly added item
-        i = len(self.items)
+    def add_pod(self) -> Dict:  # Returns fields of newly added container
+        i = len(self.containers)
 
-        if i > 0 and not self.items[i - 1].has_pod():
+        if i > 0 and not self.containers[i - 1].has_pod():
             i = i - 1
-            fields = self.items[i].fields
+            fields = self.containers[i].fields
         else:
-            self.items.append(ContainerListItem())
-            fields = self.items[i].fields
+            self.containers.append(ContainerListItem())
+            fields = self.containers[i].fields
 
             # Pod-specific information
             fields["podGlobalIndex"] = 1
             if i > 0:  # Not the first pod
-                fields["podGlobalIndex"] = self.items[i - 1].fields["podGlobalIndex"] + 1
+                fields["podGlobalIndex"] = self.containers[i - 1].fields["podGlobalIndex"] + 1
 
         return fields
 
-    # If pod without containers - replaces container info, otherwise adds new item
-    def add_container(self) -> Dict:  # Returns fields of newly added item
-        i = len(self.items)
+    # If pod without containers - replaces container info, otherwise adds new container
+    def add_container(self) -> Dict:  # Returns fields of newly added container
+        i = len(self.containers)
 
         if i == 0:
             raise RuntimeError("Trying to add container when pod is not added")
 
-        if not self.items[i - 1].has_pod():
+        if not self.containers[i - 1].has_pod():
             raise RuntimeError("Container can be added only to existing pod")
 
-        if not self.items[i - 1].has_container():
+        if not self.containers[i - 1].has_container():
             i = i - 1
-            fields = self.items[i].fields
+            fields = self.containers[i].fields
         else:
-            self.items.append(ContainerListItem())
-            fields = self.items[i].fields
+            self.containers.append(ContainerListItem())
+            fields = self.containers[i].fields
 
-            fields["podGlobalIndex"] = self.items[i - 1].fields["podGlobalIndex"]
-            fields["appIndex"] = self.items[i - 1].fields["appIndex"]
-            fields["workloadType"] = self.items[i - 1].fields["workloadType"]
-            fields["appName"] = self.items[i - 1].fields["appName"]
-            fields["podName"] = self.items[i - 1].fields["podName"]
+            fields["podGlobalIndex"] = self.containers[i - 1].fields["podGlobalIndex"]
+            fields["appIndex"] = self.containers[i - 1].fields["appIndex"]
+            fields["workloadType"] = self.containers[i - 1].fields["workloadType"]
+            fields["appName"] = self.containers[i - 1].fields["appName"]
+            fields["podName"] = self.containers[i - 1].fields["podName"]
 
         return fields
 
@@ -833,45 +833,45 @@ class KubernetesResourceSet:
             self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
 
     def get_first_by_key(self, key) -> Union[ContainerListItem, None]:
-        for item in self.items:
-            if item.fields['containerKey'] == key:
-                return item
+        for container in self.containers:
+            if container.fields['containerKey'] == key:
+                return container
 
         return None
 
-    def compare(self, ref_pods):
+    def compare(self, ref_res):
         # Added and modified
-        for item in self.items:
-            ref_item = ref_pods.get_first_by_key(item.fields['containerKey'])
+        for container in self.containers:
+            ref_container = ref_res.get_first_by_key(container.fields['containerKey'])
 
-            if ref_item is None:
-                item.fields['change'] = 'New Container'
+            if ref_container is None:
+                container.fields['change'] = 'New Container'
             else:
                 for res_field in ['containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits']:
-                    item.fields['ref_' + res_field] = ref_item.fields[res_field]
-                item.check_if_modified()
+                    container.fields['ref_' + res_field] = ref_container.fields[res_field]
+                container.check_if_modified()
 
         # Deleted
-        for ref_item in ref_pods.items:
-            item = self.get_first_by_key(ref_item.fields['containerKey'])
+        for ref_container in ref_res.containers:
+            container = self.get_first_by_key(ref_container.fields['containerKey'])
 
-            if item is None:
-                self.items.append(ref_item)
+            if container is None:
+                self.containers.append(ref_container)
 
-                deleted_item = self.items[-1]
+                deleted_container = self.containers[-1]
 
-                deleted_item.fields['change'] = 'Deleted Container'
-                deleted_item.fields['podGlobalIndex'] = 0
+                deleted_container.fields['change'] = 'Deleted Container'
+                deleted_container.fields['podGlobalIndex'] = 0
 
-                deleted_item.fields["ref_containerCPURequests"] = deleted_item.fields["containerCPURequests"]
-                deleted_item.fields["ref_containerCPULimits"] = deleted_item.fields["containerCPULimits"]
-                deleted_item.fields["ref_containerMemoryRequests"] = deleted_item.fields["containerMemoryRequests"]
-                deleted_item.fields["ref_containerMemoryLimits"] = deleted_item.fields["containerMemoryLimits"]
+                deleted_container.fields["ref_containerCPURequests"] = deleted_container.fields["containerCPURequests"]
+                deleted_container.fields["ref_containerCPULimits"] = deleted_container.fields["containerCPULimits"]
+                deleted_container.fields["ref_containerMemoryRequests"] = deleted_container.fields["containerMemoryRequests"]
+                deleted_container.fields["ref_containerMemoryLimits"] = deleted_container.fields["containerMemoryLimits"]
 
-                deleted_item.fields["containerCPURequests"] = 0
-                deleted_item.fields["containerCPULimits"] = 0
-                deleted_item.fields["containerMemoryRequests"] = 0
-                deleted_item.fields["containerMemoryLimits"] = 0
+                deleted_container.fields["containerCPURequests"] = 0
+                deleted_container.fields["containerCPULimits"] = 0
+                deleted_container.fields["containerMemoryRequests"] = 0
+                deleted_container.fields["containerMemoryLimits"] = 0
 
         self.sort()
 
@@ -896,7 +896,7 @@ def parse_args():
 
     epilog = \
         """
-        Filter criteria is a comma-separated list of 'field=regex' items. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), containerType (type), containerName (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
+        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), containerType (type), containerName (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
         
         Examples:\n
         
@@ -1075,19 +1075,19 @@ def main():
 
     parse_args()
 
-    all_pods = KubernetesResourceSet()
-    ref_pods = KubernetesResourceSet()
+    target_res = KubernetesResourceSet()
+    ref_res = KubernetesResourceSet()
 
     with_changes = args.reference is not None
 
     try:
-        all_pods.load(args.input)
+        target_res.load(args.input)
 
         if with_changes:
-            ref_pods.load(args.reference)
-            all_pods.compare(ref_pods)
+            ref_res.load(args.reference)
+            target_res.compare(ref_res)
 
-        pods = all_pods.filter(
+        pods = target_res.filter(
             parse_filter_expression(args.filter_criteria)
         )
 
