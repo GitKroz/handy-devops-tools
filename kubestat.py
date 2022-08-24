@@ -815,8 +815,6 @@ class KubernetesResourceSet:
 
         logger.debug("Parsing {}".format(context))
 
-        self.reset()
-
         res_desc: JSON = self.read_res_desc(source=source)
 
         res_index = 0
@@ -1002,10 +1000,11 @@ def parse_args():
     parser.add_argument('-o', '--output', dest='output_format', type=str, default='pretty',
                         help='Specify output format: pretty, table, tree, csv')
     parser.add_argument('-r', metavar='FILE', dest='reference', type=str,
-                        help='Reference file or @namespace to compare with')
+                        help='Reference file or @namespace to compare with')  # TODO: Allow several references
     parser.add_argument('-u', dest='raw_units', action="store_true",
                         help="Don't convert CPU and Memory values in human-readable format")
-    parser.add_argument(metavar="FILE", dest='input', type=str, help='Input file or @namespace')
+    parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
+                        help='Input file or @namespace')
 
     # Show help if no arguments supplied
     if len(sys.argv) == 1:
@@ -1153,7 +1152,8 @@ def main():
     with_changes = args.reference is not None
 
     try:
-        target_res.load(args.input)
+        for i in args.inputs:
+            target_res.load(i)
 
         if with_changes:
             ref_res.load(args.reference)
