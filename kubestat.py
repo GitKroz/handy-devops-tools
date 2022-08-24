@@ -668,7 +668,11 @@ class PodList:
         else:
             pods = self.read_pods_desc_from_file(filename=source)
 
-        # TODO: Validate
+        try:
+            if pods['apiVersion'] != 'v1':
+                raise RuntimeError("Unsupported input format: expecting 'apiVersion': 'v1', but '{}' is given".format(pods['apiVersion']))
+        except KeyError:
+            raise RuntimeError("Unsupported input format: expecting apiVersion 'v1', but no apiVersion is given")
 
         return pods
 
