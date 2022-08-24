@@ -4,7 +4,7 @@ This document describes style guide for Python code used in this project
 
 ## General
 
-Shall be compliant with official [PEP 8 – Style Guide for Python Code](https://peps.python.org/pep-0008/) **with exceptions** which are described in this document.
+Shall be compliant with official [PEP 8 – Style Guide for Python Code](https://peps.python.org/pep-0008/) **with exceptions/specifications** described in this document.
 
 ## Code Layout
 
@@ -37,7 +37,7 @@ Motivation:
 
 #### Static Methods
 
-May not contain `@static` annotation
+May not contain `@staticmethod` annotation
 
 Motivation: to have uniform declaration of all methods
 
