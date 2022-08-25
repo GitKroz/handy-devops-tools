@@ -1,9 +1,8 @@
 kubestat.py
-* CSV export
+* Recover tree view
+* Delete pretty table view
 * Double-check comparison especially with multiple input files
-* Rename keys/indices fields
-* Add keys/indices fields
-* Add context variable where present
+* Add context variable where relevant
 * Summary to tree view
 * Tree mode must respect 'with_changes'
 * For filter - make "does NOT match regex"
