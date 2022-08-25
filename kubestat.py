@@ -66,7 +66,7 @@ class ContainerListItem:
             "key": "",  # str
             "index": 0,  # int: global numeration of containers
             "localIndex": 0,  # int: numeration of container within pod
-            "containerType": "",  # str: init, reg
+            "type": "",  # str: init, reg
             "containerName": "",  # str
 
             "containerCPURequests": 0,  # int, milliCore
@@ -106,7 +106,7 @@ class ContainerListItem:
             "key": 0,
             "index": 0,
             "localIndex": 0,
-            "containerType": 0,
+            "type": 0,
             "containerName": 0,
 
             "containerCPURequests": 0,
@@ -144,7 +144,7 @@ class ContainerListItem:
             "key": '<',
             "index": '>',
             "localIndex": '>',
-            "containerType": '<',
+            "type": '<',
             "containerName": '<',
 
             "containerCPURequests": '>',
@@ -277,9 +277,9 @@ class ContainerListItem:
         # TODO: exclude usage of 'prev_container'
 
         # TODO: add to commandline arguments
-        columns = ['podIndex', 'workloadType', 'podName', 'containerType', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
+        columns = ['podIndex', 'workloadType', 'podName', 'type', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'containerType', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
 
         template = ""
         for column in columns:
@@ -346,7 +346,7 @@ class ContainerListItem:
 
         container_template = \
             " " * container_indent + \
-            "({containerType:<4}) " + \
+            "({type:<4}) " + \
             "{containerName:<" + str(containerName_width + 2) + "}" + \
             "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
             "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
@@ -385,7 +385,7 @@ class ContainerListItem:
             self.fields["workloadType"],
             self.fields["podIndex"],
             self.fields["podName"],
-            self.fields["containerType"],
+            self.fields["type"],
             self.fields["containerName"],
 
             self.fields["containerCPURequests"],
@@ -447,7 +447,7 @@ class ContainerListHeader(ContainerListItem):
             "key": "Container Key",
             "index": "N",
             "localIndex": "LN",
-            "containerType": "Type",
+            "type": "Type",
             "containerName": "Container",
 
             "containerCPURequests": "CPU_R",
@@ -631,7 +631,7 @@ class KubernetesResourceSet:
 
         for container in self.containers:
             matches = True
-            for field in ["workloadType", "podName", "containerType", "containerName"]:
+            for field in ["workloadType", "podName", "type", "containerName"]:
                 matches = matches and bool(re.search(criteria.fields[field], container.fields[field]))
 
             if matches:
@@ -731,7 +731,7 @@ class KubernetesResourceSet:
         running = self.filter(ContainerListItem(
             {
                 "workloadType": '^(?!Job).*$',
-                "containerType": "^(?!init).*$"
+                "type": "^(?!init).*$"
             }
         ))
         used_pvc_names = running.get_used_pvcs()
@@ -799,12 +799,12 @@ class KubernetesResourceSet:
 
         return pvc
 
-    def parse_container_resources(self, container_desc: JSON, containerType: str, pod_volumes: JSON):
+    def parse_container_resources(self, container_desc: JSON, container_type: str, pod_volumes: JSON):
         container: ContainerListItem
         container = self.add_container()
 
         container.fields["containerName"] = container_desc["name"]
-        container.fields["containerType"] = containerType
+        container.fields["type"] = container_type
 
         try:
             container.fields["containerCPURequests"] = res_cpu_str_to_millicores(container_desc["resources"]["requests"]["cpu"])
@@ -942,11 +942,11 @@ class KubernetesResourceSet:
 
         if "initContainers" in pod_desc["spec"]:
             for container_desc in pod_desc["spec"]["initContainers"]:
-                self.parse_container_resources(container_desc=container_desc, containerType="init", pod_volumes=pod_volumes)
+                self.parse_container_resources(container_desc=container_desc, container_type="init", pod_volumes=pod_volumes)
 
         if "containers" in pod_desc["spec"]:
             for container_desc in pod_desc["spec"]["containers"]:
-                self.parse_container_resources(container_desc=container_desc, containerType="reg", pod_volumes=pod_volumes)
+                self.parse_container_resources(container_desc=container_desc, container_type="reg", pod_volumes=pod_volumes)
 
     def load_pvc(self, pvc_desc: JSON, context: Dict) -> None:
         logger.debug("Parsing PVC {}".format(context))
@@ -1033,7 +1033,7 @@ def parse_args():
 
     epilog = \
         """
-        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), containerType (type), containerName (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
+        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, containerName (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
         
         Examples:\n
         
@@ -1096,7 +1096,7 @@ def parse_filter_expression(criteria: str) -> ContainerListItem:
             aliases = {
                 "kind": "workloadType",
                 "pod": "podName",
-                "type": "containerType",
+                "type": "type",
                 "container": "containerName",
             }
             if parts[0] in aliases.keys():
