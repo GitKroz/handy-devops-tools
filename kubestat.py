@@ -87,7 +87,7 @@ class ContainerListItem:
 
             "ref_containerPVCList": set(),  # List of strings
             "ref_containerPVCQuantity": 0,  # int
-            "ref_storageRequests": 0,  # int, bytes
+            "ref_containerPVCRequests": 0,  # int, bytes
         }
 
     @staticmethod
@@ -127,7 +127,7 @@ class ContainerListItem:
 
             "ref_containerPVCList": 0,
             "ref_containerPVCQuantity": 0,
-            "ref_storageRequests": 0
+            "ref_containerPVCRequests": 0
         }
 
         ContainerListItem.fields_alignment = {  # < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
@@ -165,7 +165,7 @@ class ContainerListItem:
 
             "ref_containerPVCList": '<',
             "ref_containerPVCQuantity": '>',
-            "ref_storageRequests": '>'
+            "ref_containerPVCRequests": '>'
         }
 
     def generate_keys(self):
@@ -222,7 +222,7 @@ class ContainerListItem:
             formatted_fields["ref_memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryRequests"], raw_units)
             formatted_fields["ref_memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryLimits"], raw_units)
 
-            formatted_fields["ref_storageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_storageRequests"], raw_units)
+            formatted_fields["ref_containerPVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerPVCRequests"], raw_units)
 
         # Make sure all fields are strings
         for k, v in formatted_fields.items():
@@ -279,7 +279,7 @@ class ContainerListItem:
         # TODO: add to commandline arguments
         columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'storageRequests', 'containerPVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'storageRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_storageRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'storageRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_containerPVCRequests']
 
         template = ""
         for column in columns:
@@ -364,7 +364,7 @@ class ContainerListItem:
                                  "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
                                  "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
                                  "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-                                 "{ref_storageRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
+                                 "{ref_containerPVCRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
         # " {key}"
 
         container_template = self.decorate_changes(container_template, is_pod_only=False)
@@ -406,7 +406,7 @@ class ContainerListItem:
 
             self.fields["ref_containerPVCList"],
             self.fields["ref_containerPVCQuantity"],
-            self.fields["ref_storageRequests"]
+            self.fields["ref_containerPVCRequests"]
         ])
 
 
@@ -457,7 +457,7 @@ class ContainerListHeader(ContainerListItem):
 
             "containerPVCList": "PVC List",
             "containerPVCQuantity": "PVC_Q",
-            "storageRequests": "Stor_R",
+            "storageRequests": "PVC_R",
 
             "change": "Change",
 
@@ -468,7 +468,7 @@ class ContainerListHeader(ContainerListItem):
 
             "ref_containerPVCList": "rPVC List",
             "ref_containerPVCQuantity": "rPVC_Q",
-            "ref_storageRequests": "rStor_R",
+            "ref_containerPVCRequests": "rPVC_R",
         }
 
     def is_decoration(self) -> bool:  # Header, Line etc
@@ -499,7 +499,7 @@ class ContainerListHeader(ContainerListItem):
                        "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
                        "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
                        "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-                       "{ref_storageRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
+                       "{ref_containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         print(template.format(**formatted_fields))
 
