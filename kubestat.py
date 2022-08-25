@@ -505,7 +505,7 @@ class KubernetesResourceSet:
             if container_index > 0:
                 if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
                     pod_index = pod_index + 1
-            container.fields['podIndex'] = pod_index + 1  # TODO: rename field
+            container.fields['podIndex'] = pod_index + 1
 
             if container_index > 0:
                 if not self.containers[container_index - 1].is_same_app(container, trust_key=False):
