@@ -15,8 +15,11 @@ import subprocess
 ################################################################################
 # Constants, global variables, types
 ################################################################################
-# Type
+# Types
 JSON = TypeVar('JSON', Dict, List)
+
+# Constants
+SYM_LINE = '-'
 
 # Global variables
 logger: Optional[logging.Logger] = None  # Will be filled in setup_logging()
@@ -30,42 +33,41 @@ args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
 class ContainerListItem:
     fields: Dict = {}
 
-    appName_width: int = 0
-    podName_width: int = 0
-    containerName_width: int = 0
+    column_separator: str
 
-    containerMemoryLimits_width: int = 0
-    containerMemoryRequests_width: int = 0
-    containerCPULimits_width: int = 0
-    containerCPURequests_width: int = 0
-
-    containerPVCList_width: int = 0
-    containerPVCQuantity_width: int = 0
-    containerPVCRequests_width: int = 0
+    # Static variable
+    fields_width: Dict = {}
+    fields_alignment: Dict = {}
 
     def __init__(self, values: Optional[Dict] = None):
-        if values is None:
-            values = {}
+        self.sym_column_separator = '  '
 
         self.reset()
+
+        if values is None:
+            values = {}
 
         for key in self.fields.keys():
             if key in values:
                 self.fields[key] = values[key]
 
     def reset(self):
-        self.fields: Dict = {
-            "key": "",
-            "podKey": "",
+        self.fields = {
+            "appKey": "",  # str
+            "appIndex": 0,  # int: global numeration of application
+            "appName": "",  # str: can be viewed as pod name without suffixes
+            "workloadType": "",  # str: DaemonSet, ReplicaSet, StatefulSet, Job
 
-            "podIndex": 0,  # int - global numeration of containers
-            "appIndex": "",  # str - index within Application; is a suffix in the beginning
+            "podKey": "",  # str
+            "podIndex": 0,  # int: global numeration of pods
+            "podLocalIndex": 0,  # int: numeration of pods within application (ReplicaSet, DaemonSet, etc)
+            "podName": "",  # str
 
-            "workloadType": "",  # DaemonSet, ReplicaSet, StatefulSet, Job
-            "appName": "",  # Can be viewed as pod name without suffixes
-            "podName": "",
-            "containerType": "",  # init, reg
-            "containerName": "",
+            "key": "",  # str
+            "index": 0,  # int: global numeration of containers
+            "localIndex": 0,  # int: numeration of container within pod
+            "containerType": "",  # str: init, reg
+            "containerName": "",  # str
 
             "containerCPURequests": 0,  # int, milliCore
             "containerCPULimits": 0,  # int, milliCore
@@ -76,7 +78,7 @@ class ContainerListItem:
             "containerPVCQuantity": 0,  # int
             "containerPVCRequests": 0,  # int, bytes
 
-            "change": "Unchanged",  # Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
+            "change": "Unchanged",  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
 
             "ref_containerCPURequests": 0,  # int, milliCore
             "ref_containerCPULimits": 0,  # int, milliCore
@@ -86,6 +88,84 @@ class ContainerListItem:
             "ref_containerPVCList": set(),  # List of strings
             "ref_containerPVCQuantity": 0,  # int
             "ref_containerPVCRequests": 0,  # int, bytes
+        }
+
+    @staticmethod
+    def reset_field_widths():
+        ContainerListItem.fields_width = {
+            "appKey": 0,
+            "appIndex": 0,
+            "appName": 0,
+            "workloadType": 0,
+
+            "podKey": 0,
+            "podIndex": 0,
+            "podLocalIndex": 0,
+            "podName": 0,
+
+            "key": 0,
+            "index": 0,
+            "localIndex": 0,
+            "containerType": 0,
+            "containerName": 0,
+
+            "containerCPURequests": 0,
+            "containerCPULimits": 0,
+            "containerMemoryRequests": 0,
+            "containerMemoryLimits": 0,
+
+            "containerPVCList": 0,
+            "containerPVCQuantity": 0,
+            "containerPVCRequests": 0,
+
+            "change": 0,
+
+            "ref_containerCPURequests": 0,
+            "ref_containerCPULimits": 0,
+            "ref_containerMemoryRequests": 0,
+            "ref_containerMemoryLimits": 0,
+
+            "ref_containerPVCList": 0,
+            "ref_containerPVCQuantity": 0,
+            "ref_containerPVCRequests": 0
+        }
+
+        ContainerListItem.fields_alignment = {  # < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
+            "appKey": '<',
+            "appIndex": '>',
+            "appName": '<',
+            "workloadType": '<',
+
+            "podKey": '<',
+            "podIndex": '>',
+            "podLocalIndex": '>',
+            "podName": '<',
+
+            "key": '<',
+            "index": '>',
+            "localIndex": '>',
+            "containerType": '<',
+            "containerName": '<',
+
+            "containerCPURequests": '>',
+            "containerCPULimits": '>',
+            "containerMemoryRequests": '>',
+            "containerMemoryLimits": '>',
+
+            "containerPVCList": '<',
+            "containerPVCQuantity": '>',
+            "containerPVCRequests": '>',
+
+            "change": '<',
+
+            "ref_containerCPURequests": '>',
+            "ref_containerCPULimits": '>',
+            "ref_containerMemoryRequests": '>',
+            "ref_containerMemoryLimits": '>',
+
+            "ref_containerPVCList": '<',
+            "ref_containerPVCQuantity": '>',
+            "ref_containerPVCRequests": '>'
         }
 
     def generate_keys(self):
@@ -100,7 +180,7 @@ class ContainerListItem:
         return self.fields["containerName"] != ""
 
     def is_decoration(self) -> bool:  # Header, Line etc
-        return type(self.fields["podIndex"]) is not int and self.fields["podIndex"] != ""
+        return False
 
     def is_same_pod(self, container, trust_key: bool = True) -> bool:
         if trust_key:
@@ -143,6 +223,13 @@ class ContainerListItem:
             formatted_fields["ref_containerMemoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerMemoryLimits"], raw_units)
 
             formatted_fields["ref_containerPVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerPVCRequests"], raw_units)
+
+        # Make sure all fields are strings
+        for k, v in formatted_fields.items():
+            if type(v) is set:
+                formatted_fields[k] = '{}'.format(list(v))
+            elif type(v) is not str:
+                formatted_fields[k] = '{}'.format(v)
 
         return formatted_fields
 
@@ -187,50 +274,22 @@ class ContainerListItem:
         return r
 
     def print_table(self, raw_units: bool, prev_container, with_changes: bool):
+        # TODO: exclude usage of 'prev_container'
+
+        # TODO: add to commandline arguments
+        columns = ['podIndex', 'workloadType', 'podName', 'containerType', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
+        if with_changes:  # TODO: Check
+            columns = ['podIndex', 'workloadType', 'podName', 'containerType', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
+
+        template = ""
+        for column in columns:
+            template = template + '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}' + self.sym_column_separator
+
         formatted_fields = self.get_formatted_fields(raw_units)
-
-        # Skip application/workload values if it was contained in the previous container
-        if self.is_same_app(prev_container):
-            formatted_fields["workloadType"] = ""
-            formatted_fields["appName"] = ""
-
-        # Skip pod values if it was contained in the previous container
-        if self.is_same_pod(prev_container):
-            formatted_fields["podIndex"] = ""
-            formatted_fields["podName"] = ""
-
-        template = \
-            "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
-            "{workloadType:<13}" + \
-            "{podIndex:<4}" + \
-            "{podName:<" + str(ContainerListItem.podName_width + 2) + "}" + \
-            "{containerType:<7}" + \
-            "{containerName:<" + str(ContainerListItem.containerName_width + 2) + "}" + \
-            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-            "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
-
-        if with_changes:
-            template = template + \
-                       "  " + \
-                       "{change:<18}" + \
-                       "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-                       "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-                       "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-                       "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-                       "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-                       "{ref_containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
-
-        # logger.info("{}".format(self.fields))
-
-        if not self.is_decoration():
-            template = self.decorate_changes(template, is_pod_only=False)
 
         print(template.format(**formatted_fields))
 
+    # TODO: Update
     def get_tree_columns_width(self, with_changes: bool):
         container_indent = 6
 
@@ -354,68 +413,66 @@ class ContainerListItem:
 class ContainerListLine(ContainerListItem):
     def __init__(self):
         super().__init__()
+        self.sym_column_separator = '-' * len(self.sym_column_separator)
 
-        self.fields["key"] = "-" * 4
-        self.fields["podKey"] = "-" * 4
+    def reset(self):
+        for k, v in ContainerListItem.fields_width.items():
+            self.fields[k] = SYM_LINE * ContainerListItem.fields_width[k]
+        logger.debug("Tick")
 
-        # Note: q-ty of dashes must correspond to size of fields
-        self.fields["appIndex"] = "-" * 4
-        self.fields["appName"] = "-" * (ContainerListItem.appName_width + 2)
-        self.fields["workloadType"] = "-" * 13
-        self.fields["podIndex"] = "-" * 4
-        self.fields["podName"] = "-" * (ContainerListItem.podName_width + 2)
-        self.fields["containerType"] = "-" * 7
-        self.fields["containerName"] = "-" * (ContainerListItem.containerName_width + 2)
-        self.fields["containerCPURequests"] = "-" * (ContainerListItem.containerCPURequests_width + 2)
-        self.fields["containerCPULimits"] = "-" * (ContainerListItem.containerCPULimits_width + 2)
-        self.fields["containerMemoryRequests"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
-        self.fields["containerMemoryLimits"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
-        self.fields["containerPVCQuantity"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
-        self.fields["containerPVCRequests"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
-
-        self.fields["change"] = "-" * 18
-
-        self.fields["ref_containerCPURequests"] = "-" * (ContainerListItem.containerCPURequests_width + 2)
-        self.fields["ref_containerCPULimits"] = "-" * (ContainerListItem.containerCPULimits_width + 2)
-        self.fields["ref_containerMemoryRequests"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
-        self.fields["ref_containerMemoryLimits"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
-        self.fields["ref_containerPVCQuantity"] = "-" * (ContainerListItem.containerMemoryRequests_width + 2)
-        self.fields["ref_containerPVCRequests"] = "-" * (ContainerListItem.containerMemoryLimits_width + 2)
+    def is_decoration(self) -> bool:  # Header, Line etc
+        return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
-        print('-' * (item_width + resources_width))
+        print(SYM_LINE * (item_width + resources_width))
 
 
 class ContainerListHeader(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-        self.fields["key"] = "cKey"
-        self.fields["podKey"] = "pKey"
+    def reset(self):
+        self.fields = {
+            "appKey": "App Key",
+            "appIndex": "AppN",
+            "appName": "Application",
+            "workloadType": "Workload",
 
-        self.fields["appIndex"] = "Cnt"
-        self.fields["appName"] = "Application"
-        self.fields["workloadType"] = "Workload"
-        self.fields["podIndex"] = "#"
-        self.fields["podName"] = "Pod"
-        self.fields["containerType"] = "Type"
-        self.fields["containerName"] = "Container"
-        self.fields["containerCPURequests"] = "CPU_R"
-        self.fields["containerCPULimits"] = "CPU_L"
-        self.fields["containerMemoryRequests"] = "Mem_R"
-        self.fields["containerMemoryLimits"] = "Mem_L"
-        self.fields["containerPVCQuantity"] = "PVC_Q"
-        self.fields["containerPVCRequests"] = "PVC_R"
+            "podKey": "Pod Key",
+            "podIndex": "PodN",
+            "podLocalIndex": "PodLN",
+            "podName": "Pod",
 
-        self.fields["change"] = "Change"
+            "key": "Container Key",
+            "index": "N",
+            "localIndex": "LN",
+            "containerType": "Type",
+            "containerName": "Container",
 
-        self.fields["ref_containerCPURequests"] = "rCPU_R"
-        self.fields["ref_containerCPULimits"] = "rCPU_L"
-        self.fields["ref_containerMemoryRequests"] = "rMem_R"
-        self.fields["ref_containerMemoryLimits"] = "rMem_L"
-        self.fields["ref_containerPVCQuantity"] = "rPVC_Q"
-        self.fields["ref_containerPVCRequests"] = "rPVC_R"
+            "containerCPURequests": "CPU_R",
+            "containerCPULimits": "CPU_L",
+            "containerMemoryRequests": "Mem_R",
+            "containerMemoryLimits": "Mem_L",
+
+            "containerPVCList": "PVC List",
+            "containerPVCQuantity": "PVC_Q",
+            "containerPVCRequests": "PVC_R",
+
+            "change": "Change",
+
+            "ref_containerCPURequests": "rCPU_R",
+            "ref_containerCPULimits": "rCPU_L",
+            "ref_containerMemoryRequests": "rMem_R",
+            "ref_containerMemoryLimits": "rMem_L",
+
+            "ref_containerPVCList": "rPVC List",
+            "ref_containerPVCQuantity": "rPVC_Q",
+            "ref_containerPVCRequests": "rPVC_R",
+        }
+
+    def is_decoration(self) -> bool:  # Header, Line etc
+        return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         formatted_fields = self.get_formatted_fields(raw_units)
@@ -600,51 +657,13 @@ class KubernetesResourceSet:
 
         return r
 
-    def set_optimal_field_width(self, raw_units: bool):
-        # Minimum width
-        ContainerListItem.appName_width = 12
-        ContainerListItem.podName_width = 12
-        ContainerListItem.containerName_width = 22
-        ContainerListItem.containerCPURequests_width = 6
-        ContainerListItem.containerCPULimits_width = 6
-        ContainerListItem.containerMemoryRequests_width = 6
-        ContainerListItem.containerMemoryLimits_width = 6
+    def set_optimal_field_width(self, raw_units: bool) -> None:
+        ContainerListItem.reset_field_widths()
 
-        ContainerListItem.containerPVCList_width = 4
-        ContainerListItem.containerPVCQuantity_width = 6
-        ContainerListItem.containerPVCRequests_width = 6
-        # Note: assuming that for ref_* fields width will be the same
-
-        for container in self.containers:
-            ContainerListItem.appName_width = max(ContainerListItem.appName_width, len(container.fields['appName']))
-            ContainerListItem.podName_width = max(ContainerListItem.podName_width, len(container.fields['podName']))
-            ContainerListItem.containerName_width = max(ContainerListItem.containerName_width, len(container.fields['containerName']))
-            ContainerListItem.containerCPURequests_width = \
-                max(ContainerListItem.containerCPURequests_width,
-                    len(res_mem_bytes_to_str_1024(container.fields['containerCPURequests'], raw_units))
-                    )
-            ContainerListItem.containerCPULimits_width = \
-                max(ContainerListItem.containerCPULimits_width,
-                    len(res_mem_bytes_to_str_1024(container.fields['containerCPULimits'], raw_units))
-                    )
-            ContainerListItem.containerMemoryRequests_width = \
-                max(ContainerListItem.containerMemoryRequests_width,
-                    len(res_mem_bytes_to_str_1024(container.fields['containerMemoryRequests'], raw_units))
-                    )
-            ContainerListItem.containerMemoryLimits_width = \
-                max(ContainerListItem.containerMemoryLimits_width,
-                    len(res_mem_bytes_to_str_1024(container.fields['containerMemoryLimits'], raw_units))
-                    )
-
-            ContainerListItem.containerPVCList_width = \
-                max(ContainerListItem.containerPVCList_width,
-                    len("{}".format(container.fields['containerPVCList']))
-                    )
-            # ContainerListItem.containerPVCQuantity_width = 4
-            ContainerListItem.containerPVCRequests_width = \
-                max(ContainerListItem.containerPVCRequests_width,
-                    len(res_mem_bytes_to_str_1024(container.fields['containerPVCRequests'], raw_units))
-                    )
+        for container in self.containers + [ContainerListHeader()]:  # Taking maximum length of values of all containers plus header
+            str_fields = container.get_formatted_fields(raw_units=raw_units)
+            for k, v in str_fields.items():
+                ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
     def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
         self.set_optimal_field_width(raw_units)
