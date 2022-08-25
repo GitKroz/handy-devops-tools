@@ -55,7 +55,7 @@ class ContainerListItem:
 
     def reset(self):
         self.fields: Dict = {
-            "containerKey": "",
+            "key": "",
             "podKey": "",
 
             "podGlobalIndex": 0,  # int - global numeration of containers
@@ -91,7 +91,7 @@ class ContainerListItem:
     def generate_keys(self):
         self.fields['appKey'] = self.fields['appName']
         self.fields['podKey'] = self.fields['appKey'] + '/' + str(self.fields['podLocalIndex'])
-        self.fields['containerKey'] = self.fields['podKey'] + '/' + self.fields['containerName']
+        self.fields['key'] = self.fields['podKey'] + '/' + self.fields['containerName']
 
     def has_pod(self) -> bool:
         return self.fields["podName"] != ""
@@ -306,7 +306,7 @@ class ContainerListItem:
                                  "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
                                  "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
                                  "{ref_containerPVCRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
-        # " {containerKey}"
+        # " {key}"
 
         container_template = self.decorate_changes(container_template, is_pod_only=False)
 
@@ -318,7 +318,7 @@ class ContainerListItem:
         csv_writer = csv.writer(sys.stdout, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
         csv_writer.writerow([
-            self.fields["containerKey"],
+            self.fields["key"],
             self.fields["podKey"],
 
             self.fields["appIndex"],
@@ -355,7 +355,7 @@ class ContainerListLine(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-        self.fields["containerKey"] = "-" * 4
+        self.fields["key"] = "-" * 4
         self.fields["podKey"] = "-" * 4
 
         # Note: q-ty of dashes must correspond to size of fields
@@ -391,7 +391,7 @@ class ContainerListHeader(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-        self.fields["containerKey"] = "cKey"
+        self.fields["key"] = "cKey"
         self.fields["podKey"] = "pKey"
 
         self.fields["appIndex"] = "Cnt"
@@ -537,7 +537,7 @@ class KubernetesResourceSet:
             pvc.generate_keys()
 
     def sort(self):
-        self.containers = sorted(self.containers, key=lambda c: c.fields['containerKey'])
+        self.containers = sorted(self.containers, key=lambda c: c.fields['key'])
         self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['key'])
 
     # Note: each field in criteria is a regex
@@ -588,7 +588,7 @@ class KubernetesResourceSet:
 
             prev_container = container
 
-        r.fields["containerKey"] = ""
+        r.fields["key"] = ""
         r.fields["podKey"] = ""
         r.fields["podGlobalIndex"] = ""
         r.fields["podName"] = pod_count
@@ -901,7 +901,7 @@ class KubernetesResourceSet:
     # Get FIRST container by key
     def get_container_by_key(self, key) -> Union[ContainerListItem, None]:
         for container in self.containers:
-            if container.fields['containerKey'] == key:
+            if container.fields['key'] == key:
                 return container
 
         return None
@@ -909,7 +909,7 @@ class KubernetesResourceSet:
     def compare(self, ref_res):
         # Added and modified
         for container in self.containers:
-            ref_container = ref_res.get_container_by_key(container.fields['containerKey'])
+            ref_container = ref_res.get_container_by_key(container.fields['key'])
 
             if ref_container is None:
                 container.fields['change'] = 'New Container'
@@ -920,7 +920,7 @@ class KubernetesResourceSet:
 
         # Deleted
         for ref_container in ref_res.containers:
-            container = self.get_container_by_key(ref_container.fields['containerKey'])
+            container = self.get_container_by_key(ref_container.fields['key'])
 
             if container is None:
                 self.containers.append(ref_container)
