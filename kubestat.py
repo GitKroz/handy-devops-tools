@@ -58,7 +58,7 @@ class ContainerListItem:
             "key": "",
             "podKey": "",
 
-            "podGlobalIndex": 0,  # int - global numeration of containers
+            "podIndex": 0,  # int - global numeration of containers
             "appIndex": "",  # str - index within Application; is a suffix in the beginning
 
             "workloadType": "",  # DaemonSet, ReplicaSet, StatefulSet, Job
@@ -100,7 +100,7 @@ class ContainerListItem:
         return self.fields["containerName"] != ""
 
     def is_decoration(self) -> bool:  # Header, Line etc
-        return type(self.fields["podGlobalIndex"]) is not int and self.fields["podGlobalIndex"] != ""
+        return type(self.fields["podIndex"]) is not int and self.fields["podIndex"] != ""
 
     def is_same_pod(self, container, trust_key: bool = True) -> bool:
         if trust_key:
@@ -196,13 +196,13 @@ class ContainerListItem:
 
         # Skip pod values if it was contained in the previous container
         if self.is_same_pod(prev_container):
-            formatted_fields["podGlobalIndex"] = ""
+            formatted_fields["podIndex"] = ""
             formatted_fields["podName"] = ""
 
         template = \
             "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
             "{workloadType:<13}" + \
-            "{podGlobalIndex:<4}" + \
+            "{podIndex:<4}" + \
             "{podName:<" + str(ContainerListItem.podName_width + 2) + "}" + \
             "{containerType:<7}" + \
             "{containerName:<" + str(ContainerListItem.containerName_width + 2) + "}" + \
@@ -277,7 +277,7 @@ class ContainerListItem:
         if not self.is_same_pod(prev_container):
             # '\033[1;37m' +\
             pod_template = \
-                "{podGlobalIndex:<4}" + \
+                "{podIndex:<4}" + \
                 "{workloadType:<13}" + \
                 "{podName:<" + str(podName_width + 2) + "}"
             # "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
@@ -324,7 +324,7 @@ class ContainerListItem:
             self.fields["appIndex"],
             self.fields["appName"],
             self.fields["workloadType"],
-            self.fields["podGlobalIndex"],
+            self.fields["podIndex"],
             self.fields["podName"],
             self.fields["containerType"],
             self.fields["containerName"],
@@ -362,7 +362,7 @@ class ContainerListLine(ContainerListItem):
         self.fields["appIndex"] = "-" * 4
         self.fields["appName"] = "-" * (ContainerListItem.appName_width + 2)
         self.fields["workloadType"] = "-" * 13
-        self.fields["podGlobalIndex"] = "-" * 4
+        self.fields["podIndex"] = "-" * 4
         self.fields["podName"] = "-" * (ContainerListItem.podName_width + 2)
         self.fields["containerType"] = "-" * 7
         self.fields["containerName"] = "-" * (ContainerListItem.containerName_width + 2)
@@ -397,7 +397,7 @@ class ContainerListHeader(ContainerListItem):
         self.fields["appIndex"] = "Cnt"
         self.fields["appName"] = "Application"
         self.fields["workloadType"] = "Workload"
-        self.fields["podGlobalIndex"] = "#"
+        self.fields["podIndex"] = "#"
         self.fields["podName"] = "Pod"
         self.fields["containerType"] = "Type"
         self.fields["containerName"] = "Container"
@@ -505,7 +505,7 @@ class KubernetesResourceSet:
             if container_index > 0:
                 if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
                     pod_index = pod_index + 1
-            container.fields['podGlobalIndex'] = pod_index + 1  # TODO: rename field
+            container.fields['podIndex'] = pod_index + 1  # TODO: rename field
 
             if container_index > 0:
                 if not self.containers[container_index - 1].is_same_app(container, trust_key=False):
@@ -590,7 +590,7 @@ class KubernetesResourceSet:
 
         r.fields["key"] = ""
         r.fields["podKey"] = ""
-        r.fields["podGlobalIndex"] = ""
+        r.fields["podIndex"] = ""
         r.fields["podName"] = pod_count
         r.fields["containerName"] = container_count
 
@@ -928,7 +928,7 @@ class KubernetesResourceSet:
                 deleted_container = self.containers[-1]
 
                 deleted_container.fields['change'] = 'Deleted Container'
-                deleted_container.fields['podGlobalIndex'] = 0
+                deleted_container.fields['podIndex'] = 0
 
                 deleted_container.fields["ref_containerCPURequests"] = deleted_container.fields["containerCPURequests"]
                 deleted_container.fields["ref_containerCPULimits"] = deleted_container.fields["containerCPULimits"]
