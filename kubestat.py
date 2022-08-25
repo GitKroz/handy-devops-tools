@@ -73,6 +73,8 @@ class ContainerListItem:
             "CPULimits": 0,  # int, milliCore
             "memoryRequests": 0,  # int, bytes
             "memoryLimits": 0,  # int, bytes
+            "ephStorageRequests": 0,  # int, bytes
+            "ephStorageLimits": 0,  # int, bytes
 
             "PVCList": set(),  # List of strings
             "PVCQuantity": 0,  # int
@@ -84,6 +86,8 @@ class ContainerListItem:
             "ref_CPULimits": 0,  # int, milliCore
             "ref_memoryRequests": 0,  # int, bytes
             "ref_memoryLimits": 0,  # int, bytes
+            "ref_ephStorageRequests": 0,  # int, bytes
+            "ref_ephStorageLimits": 0,  # int, bytes
 
             "ref_PVCList": set(),  # List of strings
             "ref_PVCQuantity": 0,  # int
@@ -113,6 +117,8 @@ class ContainerListItem:
             "CPULimits": 0,
             "memoryRequests": 0,
             "memoryLimits": 0,
+            "ephStorageRequests": 0,
+            "ephStorageLimits": 0,
 
             "PVCList": 0,
             "PVCQuantity": 0,
@@ -124,6 +130,8 @@ class ContainerListItem:
             "ref_CPULimits": 0,
             "ref_memoryRequests": 0,
             "ref_memoryLimits": 0,
+            "ref_ephStorageRequests": 0,
+            "ref_ephStorageLimits": 0,
 
             "ref_PVCList": 0,
             "ref_PVCQuantity": 0,
@@ -151,6 +159,8 @@ class ContainerListItem:
             "CPULimits": '>',
             "memoryRequests": '>',
             "memoryLimits": '>',
+            "ephStorageRequests": '>',
+            "ephStorageLimits": '>',
 
             "PVCList": '<',
             "PVCQuantity": '>',
@@ -162,6 +172,8 @@ class ContainerListItem:
             "ref_CPULimits": '>',
             "ref_memoryRequests": '>',
             "ref_memoryLimits": '>',
+            "ref_ephStorageRequests": '>',
+            "ref_ephStorageLimits": '>',
 
             "ref_PVCList": '<',
             "ref_PVCQuantity": '>',
@@ -199,7 +211,7 @@ class ContainerListItem:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
 
     def check_if_modified(self):
-        for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'PVCList', 'PVCRequests']:
+        for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCRequests']:
             if self.fields[res_field] != self.fields['ref_' + res_field]:
                 self.fields['change'] = 'Modified'
 
@@ -214,6 +226,9 @@ class ContainerListItem:
             formatted_fields["memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["memoryRequests"], raw_units)
             formatted_fields["memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["memoryLimits"], raw_units)
 
+            formatted_fields["ephStorageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ephStorageRequests"], raw_units)
+            formatted_fields["ephStorageLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ephStorageLimits"], raw_units)
+
             formatted_fields["PVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["PVCRequests"], raw_units)
 
             formatted_fields["ref_CPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_CPURequests"], raw_units)
@@ -221,6 +236,9 @@ class ContainerListItem:
 
             formatted_fields["ref_memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryRequests"], raw_units)
             formatted_fields["ref_memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryLimits"], raw_units)
+
+            formatted_fields["ref_ephStorageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_ephStorageRequests"], raw_units)
+            formatted_fields["ref_ephStorageLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_ephStorageLimits"], raw_units)
 
             formatted_fields["ref_PVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_PVCRequests"], raw_units)
 
@@ -277,9 +295,9 @@ class ContainerListItem:
         # TODO: exclude usage of 'prev_container'
 
         # TODO: add to commandline arguments
-        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'PVCRequests', 'PVCList']
+        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_PVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
 
         template = ""
         for column in columns:
@@ -392,6 +410,8 @@ class ContainerListItem:
             self.fields["CPULimits"],
             self.fields["memoryRequests"],
             self.fields["memoryLimits"],
+            self.fields["ephStorageRequests"],
+            self.fields["ephStorageLimits"],
 
             self.fields["PVCList"],
             self.fields["PVCQuantity"],
@@ -403,6 +423,8 @@ class ContainerListItem:
             self.fields["ref_CPULimits"],
             self.fields["ref_memoryRequests"],
             self.fields["ref_memoryLimits"],
+            self.fields["ref_ephStorageRequests"],
+            self.fields["ref_ephStorageLimits"],
 
             self.fields["ref_PVCList"],
             self.fields["ref_PVCQuantity"],
@@ -454,6 +476,8 @@ class ContainerListHeader(ContainerListItem):
             "CPULimits": "CPU_L",
             "memoryRequests": "Mem_R",
             "memoryLimits": "Mem_L",
+            "ephStorageRequests": "Eph_R",
+            "ephStorageLimits": "Eph_L",
 
             "PVCList": "PVC List",
             "PVCQuantity": "PVC_Q",
@@ -465,6 +489,8 @@ class ContainerListHeader(ContainerListItem):
             "ref_CPULimits": "rCPU_L",
             "ref_memoryRequests": "rMem_R",
             "ref_memoryLimits": "rMem_L",
+            "ref_ephStorageRequests": "rEph_R",
+            "ref_ephStorageLimits": "rEph_L",
 
             "ref_PVCList": "rPVC List",
             "ref_PVCQuantity": "rPVC_Q",
@@ -667,11 +693,15 @@ class KubernetesResourceSet:
             r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
             r.fields["memoryRequests"] = r.fields["memoryRequests"] + container.fields["memoryRequests"]
             r.fields["memoryLimits"] = r.fields["memoryLimits"] + container.fields["memoryLimits"]
+            r.fields["ephStorageRequests"] = r.fields["ephStorageRequests"] + container.fields["ephStorageRequests"]
+            r.fields["ephStorageLimits"] = r.fields["ephStorageLimits"] + container.fields["ephStorageLimits"]
 
             r.fields["ref_CPURequests"] = r.fields["ref_CPURequests"] + container.fields["ref_CPURequests"]
             r.fields["ref_CPULimits"] = r.fields["ref_CPULimits"] + container.fields["ref_CPULimits"]
             r.fields["ref_memoryRequests"] = r.fields["ref_memoryRequests"] + container.fields["ref_memoryRequests"]
             r.fields["ref_memoryLimits"] = r.fields["ref_memoryLimits"] + container.fields["ref_memoryLimits"]
+            r.fields["ref_ephStorageRequests"] = r.fields["ref_ephStorageRequests"] + container.fields["ref_ephStorageRequests"]
+            r.fields["ref_ephStorageLimits"] = r.fields["ref_ephStorageLimits"] + container.fields["ref_ephStorageLimits"]
 
             r.fields["PVCList"] = r.fields["PVCList"].union(container.fields["PVCList"])
 
@@ -823,6 +853,16 @@ class KubernetesResourceSet:
 
         try:
             container.fields["memoryLimits"] = res_mem_str_to_bytes(container_desc["resources"]["limits"]["memory"])
+        except KeyError:
+            pass
+
+        try:
+            container.fields["ephStorageRequests"] = res_mem_str_to_bytes(container_desc["resources"]["requests"]["ephemeral-storage"])
+        except KeyError:
+            pass
+
+        try:
+            container.fields["ephStorageLimits"] = res_mem_str_to_bytes(container_desc["resources"]["limits"]["ephemeral-storage"])
         except KeyError:
             pass
 
@@ -984,7 +1024,7 @@ class KubernetesResourceSet:
             if ref_container is None:
                 container.fields['change'] = 'New Container'
             else:
-                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits']:
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits']:
                     container.fields['ref_' + res_field] = ref_container.fields[res_field]
                 container.check_if_modified()
 
@@ -1004,11 +1044,15 @@ class KubernetesResourceSet:
                 deleted_container.fields["ref_CPULimits"] = deleted_container.fields["CPULimits"]
                 deleted_container.fields["ref_memoryRequests"] = deleted_container.fields["memoryRequests"]
                 deleted_container.fields["ref_memoryLimits"] = deleted_container.fields["memoryLimits"]
+                deleted_container.fields["ref_ephStorageRequests"] = deleted_container.fields["ephStorageRequests"]
+                deleted_container.fields["ref_ephStorageLimits"] = deleted_container.fields["ephStorageLimits"]
 
                 deleted_container.fields["CPURequests"] = 0
                 deleted_container.fields["CPULimits"] = 0
                 deleted_container.fields["memoryRequests"] = 0
                 deleted_container.fields["memoryLimits"] = 0
+                deleted_container.fields["ephStorageRequests"] = 0
+                deleted_container.fields["ephStorageLimits"] = 0
 
         self.sort()
 
@@ -1147,6 +1191,10 @@ def res_mem_str_to_bytes(value: str) -> int:
         r = int(value[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024
     elif value[-1:] == "E":
         r = int(value[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024
+
+    # Special case
+    elif value[-1:] == "m":
+        r = int(round(int(value[:-1]) / 1000, 0))
 
     elif value[-2:] == "ki":
         r = int(value[:-2]) * 1000
