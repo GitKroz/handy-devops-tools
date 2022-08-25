@@ -69,10 +69,10 @@ class ContainerListItem:
             "type": "",  # str: init, reg
             "name": "",  # str
 
-            "containerCPURequests": 0,  # int, milliCore
-            "containerCPULimits": 0,  # int, milliCore
-            "containerMemoryRequests": 0,  # int, bytes
-            "containerMemoryLimits": 0,  # int, bytes
+            "CPURequests": 0,  # int, milliCore
+            "CPULimits": 0,  # int, milliCore
+            "memoryRequests": 0,  # int, bytes
+            "memoryLimits": 0,  # int, bytes
 
             "containerPVCList": set(),  # List of strings
             "containerPVCQuantity": 0,  # int
@@ -80,10 +80,10 @@ class ContainerListItem:
 
             "change": "Unchanged",  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
 
-            "ref_containerCPURequests": 0,  # int, milliCore
-            "ref_containerCPULimits": 0,  # int, milliCore
-            "ref_containerMemoryRequests": 0,  # int, bytes
-            "ref_containerMemoryLimits": 0,  # int, bytes
+            "ref_CPURequests": 0,  # int, milliCore
+            "ref_CPULimits": 0,  # int, milliCore
+            "ref_memoryRequests": 0,  # int, bytes
+            "ref_memoryLimits": 0,  # int, bytes
 
             "ref_containerPVCList": set(),  # List of strings
             "ref_containerPVCQuantity": 0,  # int
@@ -109,10 +109,10 @@ class ContainerListItem:
             "type": 0,
             "name": 0,
 
-            "containerCPURequests": 0,
-            "containerCPULimits": 0,
-            "containerMemoryRequests": 0,
-            "containerMemoryLimits": 0,
+            "CPURequests": 0,
+            "CPULimits": 0,
+            "memoryRequests": 0,
+            "memoryLimits": 0,
 
             "containerPVCList": 0,
             "containerPVCQuantity": 0,
@@ -120,10 +120,10 @@ class ContainerListItem:
 
             "change": 0,
 
-            "ref_containerCPURequests": 0,
-            "ref_containerCPULimits": 0,
-            "ref_containerMemoryRequests": 0,
-            "ref_containerMemoryLimits": 0,
+            "ref_CPURequests": 0,
+            "ref_CPULimits": 0,
+            "ref_memoryRequests": 0,
+            "ref_memoryLimits": 0,
 
             "ref_containerPVCList": 0,
             "ref_containerPVCQuantity": 0,
@@ -147,10 +147,10 @@ class ContainerListItem:
             "type": '<',
             "name": '<',
 
-            "containerCPURequests": '>',
-            "containerCPULimits": '>',
-            "containerMemoryRequests": '>',
-            "containerMemoryLimits": '>',
+            "CPURequests": '>',
+            "CPULimits": '>',
+            "memoryRequests": '>',
+            "memoryLimits": '>',
 
             "containerPVCList": '<',
             "containerPVCQuantity": '>',
@@ -158,10 +158,10 @@ class ContainerListItem:
 
             "change": '<',
 
-            "ref_containerCPURequests": '>',
-            "ref_containerCPULimits": '>',
-            "ref_containerMemoryRequests": '>',
-            "ref_containerMemoryLimits": '>',
+            "ref_CPURequests": '>',
+            "ref_CPULimits": '>',
+            "ref_memoryRequests": '>',
+            "ref_memoryLimits": '>',
 
             "ref_containerPVCList": '<',
             "ref_containerPVCQuantity": '>',
@@ -199,7 +199,7 @@ class ContainerListItem:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
 
     def check_if_modified(self):
-        for res_field in ['containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCList', 'containerPVCRequests']:
+        for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCList', 'containerPVCRequests']:
             if self.fields[res_field] != self.fields['ref_' + res_field]:
                 self.fields['change'] = 'Modified'
 
@@ -208,19 +208,19 @@ class ContainerListItem:
 
         # Make human-readable values
         if not self.is_decoration():
-            formatted_fields["containerCPURequests"] = res_cpu_millicores_to_str(formatted_fields["containerCPURequests"], raw_units)
-            formatted_fields["containerCPULimits"] = res_cpu_millicores_to_str(formatted_fields["containerCPULimits"], raw_units)
+            formatted_fields["CPURequests"] = res_cpu_millicores_to_str(formatted_fields["CPURequests"], raw_units)
+            formatted_fields["CPULimits"] = res_cpu_millicores_to_str(formatted_fields["CPULimits"], raw_units)
 
-            formatted_fields["containerMemoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["containerMemoryRequests"], raw_units)
-            formatted_fields["containerMemoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["containerMemoryLimits"], raw_units)
+            formatted_fields["memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["memoryRequests"], raw_units)
+            formatted_fields["memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["memoryLimits"], raw_units)
 
             formatted_fields["containerPVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["containerPVCRequests"], raw_units)
 
-            formatted_fields["ref_containerCPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_containerCPURequests"], raw_units)
-            formatted_fields["ref_containerCPULimits"] = res_cpu_millicores_to_str(formatted_fields["ref_containerCPULimits"], raw_units)
+            formatted_fields["ref_CPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_CPURequests"], raw_units)
+            formatted_fields["ref_CPULimits"] = res_cpu_millicores_to_str(formatted_fields["ref_CPULimits"], raw_units)
 
-            formatted_fields["ref_containerMemoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerMemoryRequests"], raw_units)
-            formatted_fields["ref_containerMemoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerMemoryLimits"], raw_units)
+            formatted_fields["ref_memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryRequests"], raw_units)
+            formatted_fields["ref_memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryLimits"], raw_units)
 
             formatted_fields["ref_containerPVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_containerPVCRequests"], raw_units)
 
@@ -277,9 +277,9 @@ class ContainerListItem:
         # TODO: exclude usage of 'prev_container'
 
         # TODO: add to commandline arguments
-        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
+        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCRequests', 'containerPVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_containerPVCRequests']
 
         template = ""
         for column in columns:
@@ -348,10 +348,10 @@ class ContainerListItem:
             " " * container_indent + \
             "({type:<4}) " + \
             "{name:<" + str(containerName_width + 2) + "}" + \
-            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+            "{CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+            "{CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+            "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+            "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
             "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
             "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
@@ -359,10 +359,10 @@ class ContainerListItem:
             container_template = container_template + \
                                  "  " + \
                                  "{change:<18}" + \
-                                 "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-                                 "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-                                 "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-                                 "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+                                 "{ref_CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+                                 "{ref_CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+                                 "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                                 "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
                                  "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
                                  "{ref_containerPVCRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
         # " {key}"
@@ -388,10 +388,10 @@ class ContainerListItem:
             self.fields["type"],
             self.fields["name"],
 
-            self.fields["containerCPURequests"],
-            self.fields["containerCPULimits"],
-            self.fields["containerMemoryRequests"],
-            self.fields["containerMemoryLimits"],
+            self.fields["CPURequests"],
+            self.fields["CPULimits"],
+            self.fields["memoryRequests"],
+            self.fields["memoryLimits"],
 
             self.fields["containerPVCList"],
             self.fields["containerPVCQuantity"],
@@ -399,10 +399,10 @@ class ContainerListItem:
 
             self.fields["change"],
 
-            self.fields["ref_containerCPURequests"],
-            self.fields["ref_containerCPULimits"],
-            self.fields["ref_containerMemoryRequests"],
-            self.fields["ref_containerMemoryLimits"],
+            self.fields["ref_CPURequests"],
+            self.fields["ref_CPULimits"],
+            self.fields["ref_memoryRequests"],
+            self.fields["ref_memoryLimits"],
 
             self.fields["ref_containerPVCList"],
             self.fields["ref_containerPVCQuantity"],
@@ -450,10 +450,10 @@ class ContainerListHeader(ContainerListItem):
             "type": "Type",
             "name": "Container",
 
-            "containerCPURequests": "CPU_R",
-            "containerCPULimits": "CPU_L",
-            "containerMemoryRequests": "Mem_R",
-            "containerMemoryLimits": "Mem_L",
+            "CPURequests": "CPU_R",
+            "CPULimits": "CPU_L",
+            "memoryRequests": "Mem_R",
+            "memoryLimits": "Mem_L",
 
             "containerPVCList": "PVC List",
             "containerPVCQuantity": "PVC_Q",
@@ -461,10 +461,10 @@ class ContainerListHeader(ContainerListItem):
 
             "change": "Change",
 
-            "ref_containerCPURequests": "rCPU_R",
-            "ref_containerCPULimits": "rCPU_L",
-            "ref_containerMemoryRequests": "rMem_R",
-            "ref_containerMemoryLimits": "rMem_L",
+            "ref_CPURequests": "rCPU_R",
+            "ref_CPULimits": "rCPU_L",
+            "ref_memoryRequests": "rMem_R",
+            "ref_memoryLimits": "rMem_L",
 
             "ref_containerPVCList": "rPVC List",
             "ref_containerPVCQuantity": "rPVC_Q",
@@ -483,10 +483,10 @@ class ContainerListHeader(ContainerListItem):
 
         template = \
             "{item_txt:" + str(item_width) + "}" + \
-            "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-            "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-            "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-            "{containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+            "{CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+            "{CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+            "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+            "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
             "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
             "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
@@ -494,10 +494,10 @@ class ContainerListHeader(ContainerListItem):
             template = template + \
                        "  " + \
                        "{change:<18}" + \
-                       "{ref_containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-                       "{ref_containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-                       "{ref_containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-                       "{ref_containerMemoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
+                       "{ref_CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
+                       "{ref_CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
+                       "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
+                       "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
                        "{ref_containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
                        "{ref_containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
@@ -663,15 +663,15 @@ class KubernetesResourceSet:
             if not container.is_same_pod(prev_container):
                 pod_count = pod_count + 1
 
-            r.fields["containerCPURequests"] = r.fields["containerCPURequests"] + container.fields["containerCPURequests"]
-            r.fields["containerCPULimits"] = r.fields["containerCPULimits"] + container.fields["containerCPULimits"]
-            r.fields["containerMemoryRequests"] = r.fields["containerMemoryRequests"] + container.fields["containerMemoryRequests"]
-            r.fields["containerMemoryLimits"] = r.fields["containerMemoryLimits"] + container.fields["containerMemoryLimits"]
+            r.fields["CPURequests"] = r.fields["CPURequests"] + container.fields["CPURequests"]
+            r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
+            r.fields["memoryRequests"] = r.fields["memoryRequests"] + container.fields["memoryRequests"]
+            r.fields["memoryLimits"] = r.fields["memoryLimits"] + container.fields["memoryLimits"]
 
-            r.fields["ref_containerCPURequests"] = r.fields["ref_containerCPURequests"] + container.fields["ref_containerCPURequests"]
-            r.fields["ref_containerCPULimits"] = r.fields["ref_containerCPULimits"] + container.fields["ref_containerCPULimits"]
-            r.fields["ref_containerMemoryRequests"] = r.fields["ref_containerMemoryRequests"] + container.fields["ref_containerMemoryRequests"]
-            r.fields["ref_containerMemoryLimits"] = r.fields["ref_containerMemoryLimits"] + container.fields["ref_containerMemoryLimits"]
+            r.fields["ref_CPURequests"] = r.fields["ref_CPURequests"] + container.fields["ref_CPURequests"]
+            r.fields["ref_CPULimits"] = r.fields["ref_CPULimits"] + container.fields["ref_CPULimits"]
+            r.fields["ref_memoryRequests"] = r.fields["ref_memoryRequests"] + container.fields["ref_memoryRequests"]
+            r.fields["ref_memoryLimits"] = r.fields["ref_memoryLimits"] + container.fields["ref_memoryLimits"]
 
             r.fields["containerPVCList"] = r.fields["containerPVCList"].union(container.fields["containerPVCList"])
 
@@ -807,22 +807,22 @@ class KubernetesResourceSet:
         container.fields["type"] = container_type
 
         try:
-            container.fields["containerCPURequests"] = res_cpu_str_to_millicores(container_desc["resources"]["requests"]["cpu"])
+            container.fields["CPURequests"] = res_cpu_str_to_millicores(container_desc["resources"]["requests"]["cpu"])
         except KeyError:
             pass
 
         try:
-            container.fields["containerCPULimits"] = res_cpu_str_to_millicores(container_desc["resources"]["limits"]["cpu"])
+            container.fields["CPULimits"] = res_cpu_str_to_millicores(container_desc["resources"]["limits"]["cpu"])
         except KeyError:
             pass
 
         try:
-            container.fields["containerMemoryRequests"] = res_mem_str_to_bytes(container_desc["resources"]["requests"]["memory"])
+            container.fields["memoryRequests"] = res_mem_str_to_bytes(container_desc["resources"]["requests"]["memory"])
         except KeyError:
             pass
 
         try:
-            container.fields["containerMemoryLimits"] = res_mem_str_to_bytes(container_desc["resources"]["limits"]["memory"])
+            container.fields["memoryLimits"] = res_mem_str_to_bytes(container_desc["resources"]["limits"]["memory"])
         except KeyError:
             pass
 
@@ -984,7 +984,7 @@ class KubernetesResourceSet:
             if ref_container is None:
                 container.fields['change'] = 'New Container'
             else:
-                for res_field in ['containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits']:
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits']:
                     container.fields['ref_' + res_field] = ref_container.fields[res_field]
                 container.check_if_modified()
 
@@ -1000,15 +1000,15 @@ class KubernetesResourceSet:
                 deleted_container.fields['change'] = 'Deleted Container'
                 deleted_container.fields['podIndex'] = 0
 
-                deleted_container.fields["ref_containerCPURequests"] = deleted_container.fields["containerCPURequests"]
-                deleted_container.fields["ref_containerCPULimits"] = deleted_container.fields["containerCPULimits"]
-                deleted_container.fields["ref_containerMemoryRequests"] = deleted_container.fields["containerMemoryRequests"]
-                deleted_container.fields["ref_containerMemoryLimits"] = deleted_container.fields["containerMemoryLimits"]
+                deleted_container.fields["ref_CPURequests"] = deleted_container.fields["CPURequests"]
+                deleted_container.fields["ref_CPULimits"] = deleted_container.fields["CPULimits"]
+                deleted_container.fields["ref_memoryRequests"] = deleted_container.fields["memoryRequests"]
+                deleted_container.fields["ref_memoryLimits"] = deleted_container.fields["memoryLimits"]
 
-                deleted_container.fields["containerCPURequests"] = 0
-                deleted_container.fields["containerCPULimits"] = 0
-                deleted_container.fields["containerMemoryRequests"] = 0
-                deleted_container.fields["containerMemoryLimits"] = 0
+                deleted_container.fields["CPURequests"] = 0
+                deleted_container.fields["CPULimits"] = 0
+                deleted_container.fields["memoryRequests"] = 0
+                deleted_container.fields["memoryLimits"] = 0
 
         self.sort()
 
