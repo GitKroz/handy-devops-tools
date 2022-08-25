@@ -76,7 +76,7 @@ class ContainerListItem:
 
             "containerPVCList": set(),  # List of strings
             "containerPVCQuantity": 0,  # int
-            "storageRequests": 0,  # int, bytes
+            "containerPVCRequests": 0,  # int, bytes
 
             "change": "Unchanged",  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
 
@@ -116,7 +116,7 @@ class ContainerListItem:
 
             "containerPVCList": 0,
             "containerPVCQuantity": 0,
-            "storageRequests": 0,
+            "containerPVCRequests": 0,
 
             "change": 0,
 
@@ -154,7 +154,7 @@ class ContainerListItem:
 
             "containerPVCList": '<',
             "containerPVCQuantity": '>',
-            "storageRequests": '>',
+            "containerPVCRequests": '>',
 
             "change": '<',
 
@@ -199,7 +199,7 @@ class ContainerListItem:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
 
     def check_if_modified(self):
-        for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCList', 'storageRequests']:
+        for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCList', 'containerPVCRequests']:
             if self.fields[res_field] != self.fields['ref_' + res_field]:
                 self.fields['change'] = 'Modified'
 
@@ -214,7 +214,7 @@ class ContainerListItem:
             formatted_fields["memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["memoryRequests"], raw_units)
             formatted_fields["memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["memoryLimits"], raw_units)
 
-            formatted_fields["storageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["storageRequests"], raw_units)
+            formatted_fields["containerPVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["containerPVCRequests"], raw_units)
 
             formatted_fields["ref_CPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_CPURequests"], raw_units)
             formatted_fields["ref_CPULimits"] = res_cpu_millicores_to_str(formatted_fields["ref_CPULimits"], raw_units)
@@ -277,9 +277,9 @@ class ContainerListItem:
         # TODO: exclude usage of 'prev_container'
 
         # TODO: add to commandline arguments
-        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'storageRequests', 'containerPVCList']
+        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCRequests', 'containerPVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'storageRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_containerPVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'containerPVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_containerPVCRequests']
 
         template = ""
         for column in columns:
@@ -353,7 +353,7 @@ class ContainerListItem:
             "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
             "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
             "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{storageRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
+            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         if with_changes:
             container_template = container_template + \
@@ -395,7 +395,7 @@ class ContainerListItem:
 
             self.fields["containerPVCList"],
             self.fields["containerPVCQuantity"],
-            self.fields["storageRequests"],
+            self.fields["containerPVCRequests"],
 
             self.fields["change"],
 
@@ -457,7 +457,7 @@ class ContainerListHeader(ContainerListItem):
 
             "containerPVCList": "PVC List",
             "containerPVCQuantity": "PVC_Q",
-            "storageRequests": "PVC_R",
+            "containerPVCRequests": "PVC_R",
 
             "change": "Change",
 
@@ -488,7 +488,7 @@ class ContainerListHeader(ContainerListItem):
             "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
             "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
             "{containerPVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-            "{storageRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
+            "{containerPVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
 
         if with_changes:
             template = template + \
@@ -607,14 +607,14 @@ class KubernetesResourceSet:
 
         for container in self.containers:
             container.fields['containerPVCQuantity'] = 0
-            container.fields['storageRequests'] = 0
+            container.fields['containerPVCRequests'] = 0
 
             for pvc_name in container.fields['containerPVCList']:
                 pvc = self.get_pvc_by_name(name=pvc_name)
 
                 if pvc is not None:
                     container.fields['containerPVCQuantity'] = container.fields['containerPVCQuantity'] + 1
-                    container.fields['storageRequests'] = container.fields['storageRequests'] + pvc.fields['requests']
+                    container.fields['containerPVCRequests'] = container.fields['containerPVCRequests'] + pvc.fields['requests']
 
                     pvc.fields['containerList'].add(container.fields['key'])
                     pvc.fields['containerQuantity'] = len(pvc.fields['containerList'])
@@ -681,7 +681,7 @@ class KubernetesResourceSet:
         for pvc_name in r.fields['containerPVCList']:
             pvc = self.get_pvc_by_name(pvc_name)
             if pvc is not None:
-                r.fields['storageRequests'] = r.fields['storageRequests'] + pvc.fields['requests']
+                r.fields['containerPVCRequests'] = r.fields['containerPVCRequests'] + pvc.fields['requests']
 
         r.fields["key"] = ""
         r.fields["podKey"] = ""
