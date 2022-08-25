@@ -9,3 +9,4 @@ kubestat.py
 * For filter - make "does NOT match regex"
 * Toggle Megabytes | Mibibytes units
 * Deleted Pod use case
+* Make generic mechanism of parsing resources: CPU, memory, ephemeral-storage, storage
