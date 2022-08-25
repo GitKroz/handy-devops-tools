@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import TypeVar, Dict, List, Optional, Union
+from typing import TypeVar, Dict, List, Set, Optional, Union
 import logging
 import argparse
 import sys
@@ -528,6 +528,9 @@ class PVCListItem:
     def generate_keys(self):
         self.fields['key'] = self.fields['name']
 
+    def is_used(self) -> bool:
+        return len(self.fields['containerList']) != 0
+
 
 class KubernetesResourceSet:
     containers: List[ContainerListItem] = list()
@@ -593,13 +596,39 @@ class KubernetesResourceSet:
             pvc_index = pvc_index + 1
             pvc.generate_keys()
 
-    def sort(self):
+    def renew_relations(self) -> None:
+        container: ContainerListItem
+        pvc: PVCListItem
+
+        # Managing PVCs
+        for pvc in self.pvcs:
+            pvc.fields['containerList'] = set()
+            pvc.fields['containerQuantity'] = 0
+
+        for container in self.containers:
+            container.fields['containerPVCQuantity'] = 0
+            container.fields['containerPVCRequests'] = 0
+
+            for pvc_name in container.fields['containerPVCList']:
+                pvc = self.get_pvc_by_name(name=pvc_name)
+
+                if pvc is not None:
+                    container.fields['containerPVCQuantity'] = container.fields['containerPVCQuantity'] + 1
+                    container.fields['containerPVCRequests'] = container.fields['containerPVCRequests'] + pvc.fields['requests']
+
+                    pvc.fields['containerList'].add(container.fields['key'])
+                    pvc.fields['containerQuantity'] = len(pvc.fields['containerList'])
+
+    def sort(self) -> None:
         self.containers = sorted(self.containers, key=lambda c: c.fields['key'])
         self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['key'])
 
     # Note: each field in criteria is a regex
     def filter(self, criteria: ContainerListItem):
         r = KubernetesResourceSet()
+
+        r.pvcs = self.pvcs  # TODO: Think if fileter is to be applied here. May be not.
+
         for container in self.containers:
             matches = True
             for field in ["workloadType", "podName", "containerType", "containerName"]:
@@ -607,6 +636,15 @@ class KubernetesResourceSet:
 
             if matches:
                 r.containers.append(container)
+
+        return r
+
+    def get_used_pvcs(self) -> Set:
+        r = set()
+
+        for pvc in self.pvcs:
+            if pvc.is_used():
+                r.add(pvc.fields['name'])
 
         return r
 
@@ -630,20 +668,20 @@ class KubernetesResourceSet:
             r.fields["containerMemoryRequests"] = r.fields["containerMemoryRequests"] + container.fields["containerMemoryRequests"]
             r.fields["containerMemoryLimits"] = r.fields["containerMemoryLimits"] + container.fields["containerMemoryLimits"]
 
-            # TODO: Re-make, since potentially single PVC may be connected to multiple pods
-            r.fields["containerPVCQuantity"] = r.fields["containerPVCQuantity"] + container.fields["containerPVCQuantity"]
-            r.fields["containerPVCRequests"] = r.fields["containerPVCRequests"] + container.fields["containerPVCRequests"]
-
             r.fields["ref_containerCPURequests"] = r.fields["ref_containerCPURequests"] + container.fields["ref_containerCPURequests"]
             r.fields["ref_containerCPULimits"] = r.fields["ref_containerCPULimits"] + container.fields["ref_containerCPULimits"]
             r.fields["ref_containerMemoryRequests"] = r.fields["ref_containerMemoryRequests"] + container.fields["ref_containerMemoryRequests"]
             r.fields["ref_containerMemoryLimits"] = r.fields["ref_containerMemoryLimits"] + container.fields["ref_containerMemoryLimits"]
 
-            # TODO: Re-make, since potentially single PVC may be connected to multiple pods
-            r.fields["ref_containerPVCQuantity"] = r.fields["ref_containerPVCQuantity"] + container.fields["ref_containerPVCQuantity"]
-            r.fields["ref_containerPVCRequests"] = r.fields["ref_containerPVCRequests"] + container.fields["ref_containerPVCRequests"]
+            r.fields["containerPVCList"] = r.fields["containerPVCList"].union(container.fields["containerPVCList"])
 
             prev_container = container
+
+        r.fields['containerPVCQuantity'] = len(r.fields['containerPVCList'])
+        for pvc_name in r.fields['containerPVCList']:
+            pvc = self.get_pvc_by_name(pvc_name)
+            if pvc is not None:
+                r.fields['containerPVCRequests'] = r.fields['containerPVCRequests'] + pvc.fields['requests']
 
         r.fields["key"] = ""
         r.fields["podKey"] = ""
@@ -679,9 +717,13 @@ class KubernetesResourceSet:
 
         ContainerListLine().print_table(raw_units, None, with_changes)
 
+        # Calculate total
+        total: ContainerListItem
+
         # All total
+        used_pvc_names = self.get_used_pvcs()
         total = self.get_resources_total(with_changes=with_changes)
-        total.fields['podName'] = "{} pods".format(total.fields['podName'])
+        total.fields['podName'] = "{} pods using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
         total.fields['containerName'] = "{} containers".format(total.fields['containerName'])
         total.print_table(raw_units, None, with_changes)
 
@@ -692,8 +734,9 @@ class KubernetesResourceSet:
                 "containerType": "^(?!init).*$"
             }
         ))
+        used_pvc_names = running.get_used_pvcs()
         total = running.get_resources_total(with_changes=with_changes)
-        total.fields['podName'] = "{} non-jobs".format(total.fields['podName'])
+        total.fields['podName'] = "{} non-jobs using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
         total.fields['containerName'] = "{} non-init containers".format(total.fields['containerName'])
         total.print_table(raw_units, None, with_changes)
 
@@ -861,6 +904,7 @@ class KubernetesResourceSet:
             res_index = res_index + 1
 
         self.renew_keys()
+        self.renew_relations()
         # TODO: link pvc and containers
 
     def load_pod(self, pod_desc: JSON, context: Dict) -> None:
@@ -922,6 +966,13 @@ class KubernetesResourceSet:
         for container in self.containers:
             if container.fields['key'] == key:
                 return container
+
+        return None
+
+    def get_pvc_by_name(self, name: str) -> Union[PVCListItem, None]:
+        for pvc in self.pvcs:
+            if pvc.fields['name'] == name:
+                return pvc
 
         return None
 
