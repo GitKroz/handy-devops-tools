@@ -88,13 +88,10 @@ class ContainerListItem:
             "ref_containerPVCRequests": 0,  # int, bytes
         }
 
-    def make_keys(self):
-        self.fields['podKey'] = self.fields['appName'] + '/' + self.fields['appIndex']
-        self.fields['containerKey'] = self.fields['appName'] + '/' + self.fields['appIndex'] + '/' + self.fields['containerName']
-
-    def set_appIndex(self, appIndex: str):
-        self.fields['appIndex'] = appIndex
-        self.make_keys()
+    def generate_keys(self):
+        self.fields['appKey'] = self.fields['appName']
+        self.fields['podKey'] = self.fields['appKey'] + '/' + str(self.fields['podLocalIndex'])
+        self.fields['containerKey'] = self.fields['podKey'] + '/' + self.fields['containerName']
 
     def has_pod(self) -> bool:
         return self.fields["podName"] != ""
@@ -105,15 +102,18 @@ class ContainerListItem:
     def is_decoration(self) -> bool:  # Header, Line etc
         return type(self.fields["podGlobalIndex"]) is not int and self.fields["podGlobalIndex"] != ""
 
-    def is_same_pod(self, container, trust_pod_key: bool = True) -> bool:
-        if trust_pod_key:
+    def is_same_pod(self, container, trust_key: bool = True) -> bool:
+        if trust_key:
             return container is not None and self.fields["podKey"] == container.fields["podKey"]
         else:
             # To be used in functions when key is being generated
             return container is not None and self.fields["podName"] == container.fields["podName"]
 
-    def is_same_app(self, container) -> bool:
-        return container is not None and self.fields["appName"] == container.fields["appName"]
+    def is_same_app(self, container, trust_key: bool = True) -> bool:
+        if trust_key:
+            return container is not None and self.fields["appKey"] == container.fields["appKey"]
+        else:
+            return container is not None and self.fields["appName"] == container.fields["appName"]
 
     def is_deleted(self) -> bool:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
@@ -468,7 +468,7 @@ class PVCListItem:
             'requests': 0  # int, bytes
         }
 
-    def make_key(self):
+    def generate_keys(self):
         self.fields['key'] = self.fields['name']
 
 
@@ -483,42 +483,62 @@ class KubernetesResourceSet:
         self.containers = list()
         self.pvcs = list()
 
+    def renew_keys(self) -> None:
+        # Sort
+        self.containers = sorted(self.containers, key=lambda c: (c.fields['appName'] + '/' + c.fields['podName'] + '/' + c.fields['containerName']))
+        self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['name'])
+
+        # Regenerate indices and keys: containers
+        app_index: int = 0
+        pod_index: int = 0  # Global
+        pod_local_index: int = 0  # Within application
+        container_index: int = 0  # Global
+        container_local_index: int = 0  # Within pod
+
+        for container in self.containers:
+            # Indices
+            if container_index > 0:
+                if not self.containers[container_index - 1].is_same_app(container, trust_key=False):
+                    app_index = app_index + 1
+            container.fields['appIndex'] = app_index + 1
+
+            if container_index > 0:
+                if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
+                    pod_index = pod_index + 1
+            container.fields['podGlobalIndex'] = pod_index + 1  # TODO: rename field
+
+            if container_index > 0:
+                if not self.containers[container_index - 1].is_same_app(container, trust_key=False):
+                    pod_local_index = 0
+                else:
+                    if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
+                        pod_local_index = pod_index + 1
+            container.fields['podLocalIndex'] = pod_local_index + 1
+
+            if container_index > 0:
+                if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
+                    container_local_index = 0
+                else:
+                    container_local_index = container_local_index + 1
+            container.fields['localIndex'] = container_local_index + 1
+
+            container.fields['index'] = container_index + 1  # TODO: add field
+
+            container_index = container_index + 1
+
+            # Generate keys
+            container.generate_keys()
+
+        # Regenerate indices and keys: PVCs
+        pvc_index: int = 0
+        for pvc in self.pvcs:
+            pvc.fields['index'] = pvc_index
+            pvc_index = pvc_index + 1
+            pvc.generate_keys()
+
     def sort(self):
-        sorted_containers = sorted(self.containers, key=lambda container: container.fields['containerKey'])
-        self.containers = sorted_containers
-
-    # Important: this must NOT be run after compare, otherwise deleted pods will be identified as separate ones
-    def renew_replica_indices(self):
-        for container in self.containers:
-            appName_len = len(container.fields['appName'])
-            container.set_appIndex(container.fields['podName'][appName_len:])
-
-        self.sort()
-
-        replica_global_index = 1
-        replica_app_index = 1
-
-        prev_container = None
-        for container in self.containers:
-            if prev_container is None:
-                prev_container = container
-
-            if not container.is_same_pod(prev_container, trust_pod_key=False):
-                replica_global_index = replica_global_index + 1
-
-                replica_app_index = replica_app_index + 1
-                if not container.is_same_app(prev_container):
-                    replica_app_index = 0
-
-            container.set_appIndex(str(replica_app_index).zfill(3))
-            container.fields['podGlobalIndex'] = replica_global_index
-
-            prev_container = container
-
-    def renew_pvc_information(self):
-        for container in self.containers:
-            container.fields['containerPVCQuantity'] = len(container.fields['containerPVCList'])
-            # TODO: PVC size
+        self.containers = sorted(self.containers, key=lambda c: c.fields['containerKey'])
+        self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['key'])
 
     # Note: each field in criteria is a regex
     def filter(self, criteria: ContainerListItem):
@@ -675,86 +695,77 @@ class KubernetesResourceSet:
         for row in self.containers:
             row.print_csv()
 
-    def add_pod(self) -> Dict:  # Returns fields of newly added container
-        i = len(self.containers)
+    def add_pod(self) -> ContainerListItem:
+        i: int = len(self.containers)
 
-        if i > 0 and not self.containers[i - 1].has_pod():
-            i = i - 1
-            fields = self.containers[i].fields
-        else:
-            self.containers.append(ContainerListItem())
-            fields = self.containers[i].fields
+        container: ContainerListItem
 
-            # Pod-specific information
-            fields["podGlobalIndex"] = 1
-            if i > 0:  # Not the first pod
-                fields["podGlobalIndex"] = self.containers[i - 1].fields["podGlobalIndex"] + 1
+        self.containers.append(ContainerListItem())
+        container = self.containers[i]
 
-        return fields
+        return container
 
-    # If pod without containers - replaces container info, otherwise adds new container
-    def add_container(self) -> Dict:  # Returns fields of newly added container
-        i = len(self.containers)
+    def add_container(self) -> ContainerListItem:
+        i: int = len(self.containers)
 
-        if i == 0:
-            raise RuntimeError("Trying to add container when pod is not added")
+        if i == 0:  # TODO: Add context
+            raise RuntimeError("Trying to add container when no any pod is added")
 
         if not self.containers[i - 1].has_pod():
             raise RuntimeError("Container can be added only to existing pod")
 
-        if not self.containers[i - 1].has_container():
-            i = i - 1
-            fields = self.containers[i].fields
-        else:
+        container: ContainerListItem
+        if self.containers[i - 1].has_container():  # Adding a new record
             self.containers.append(ContainerListItem())
-            fields = self.containers[i].fields
+            container = self.containers[i]
 
-            fields["podGlobalIndex"] = self.containers[i - 1].fields["podGlobalIndex"]
-            fields["appIndex"] = self.containers[i - 1].fields["appIndex"]
-            fields["workloadType"] = self.containers[i - 1].fields["workloadType"]
-            fields["appName"] = self.containers[i - 1].fields["appName"]
-            fields["podName"] = self.containers[i - 1].fields["podName"]
+            container.fields["appName"] = self.containers[i - 1].fields["appName"]
+            container.fields["workloadType"] = self.containers[i - 1].fields["workloadType"]
+            container.fields["podName"] = self.containers[i - 1].fields["podName"]
+        else:  # There is a pod with no container
+            container = self.containers[-1]
 
-        return fields
+        return container
 
     def add_pvc(self) -> PVCListItem:  # TODO: align with add_pods and add_containers
-        i = len(self.pvcs)
+        i: int = len(self.pvcs)
+
+        pvc: PVCListItem
 
         self.pvcs.append(PVCListItem())
         pvc = self.pvcs[i]
 
-        pvc.fields['index'] = i
-
         return pvc
 
-    def parse_container_resources(self, container: JSON, containerType: str, pod_volumes: JSON):
-        fields = self.add_container()
+    def parse_container_resources(self, container_desc: JSON, containerType: str, pod_volumes: JSON):
+        container: ContainerListItem
+        container = self.add_container()
 
-        fields["containerName"] = container["name"]
-        fields["containerType"] = containerType
+        container.fields["containerName"] = container_desc["name"]
+        container.fields["containerType"] = containerType
 
         try:
-            fields["containerCPURequests"] = res_cpu_str_to_millicores(container["resources"]["requests"]["cpu"])
+            container.fields["containerCPURequests"] = res_cpu_str_to_millicores(container_desc["resources"]["requests"]["cpu"])
         except KeyError:
             pass
 
         try:
-            fields["containerCPULimits"] = res_cpu_str_to_millicores(container["resources"]["limits"]["cpu"])
+            container.fields["containerCPULimits"] = res_cpu_str_to_millicores(container_desc["resources"]["limits"]["cpu"])
         except KeyError:
             pass
 
         try:
-            fields["containerMemoryRequests"] = res_mem_str_to_bytes(container["resources"]["requests"]["memory"])
+            container.fields["containerMemoryRequests"] = res_mem_str_to_bytes(container_desc["resources"]["requests"]["memory"])
         except KeyError:
             pass
 
         try:
-            fields["containerMemoryLimits"] = res_mem_str_to_bytes(container["resources"]["limits"]["memory"])
+            container.fields["containerMemoryLimits"] = res_mem_str_to_bytes(container_desc["resources"]["limits"]["memory"])
         except KeyError:
             pass
 
-        if 'volumeMounts' in container:
-            for mount in container["volumeMounts"]:
+        if 'volumeMounts' in container_desc:
+            for mount in container_desc["volumeMounts"]:
                 volume_type = None
                 for volume in pod_volumes:
                     if volume['name'] == mount['name']:
@@ -767,7 +778,7 @@ class KubernetesResourceSet:
                         volume_type = volume_fields_except_name.pop()
 
                         if volume_type == 'persistentVolumeClaim':
-                            fields['containerPVCList'].add(volume['persistentVolumeClaim']['claimName'])
+                            container.fields['containerPVCList'].add(volume['persistentVolumeClaim']['claimName'])
 
                 if volume_type is None:
                     raise RuntimeError("Volume mount '{}' not found in pod_descpod volumes".format(mount['name']))
@@ -830,65 +841,54 @@ class KubernetesResourceSet:
 
             res_index = res_index + 1
 
-        self.renew_replica_indices()
-        self.renew_pvc_information()
+        self.renew_keys()
+        # TODO: link pvc and containers
 
     def load_pod(self, pod_desc: JSON, context: Dict) -> None:
         logger.debug("Parsing pod {}".format(context))
 
-        fields = self.add_pod()
+        # Pod-specific logic
+        container: ContainerListItem = self.add_pod()  # Note: this will fill index
 
-        fields["podName"] = pod_desc["metadata"]["name"]
+        container.fields["podName"] = pod_desc["metadata"]["name"]
 
-        context = {**context, 'podName': fields["podName"]}
+        context = {**context, 'podName': container.fields["podName"]}
 
         if len(pod_desc["metadata"]["ownerReferences"]) != 1:
             raise RuntimeError("Pod has {} owner references; exactly one is expected. Context: {}".format(
                 len(pod_desc["metadata"]["ownerReferences"]),
                 context
             ))
-        fields["workloadType"] = pod_desc["metadata"]["ownerReferences"][0]["kind"]
-        if 'app' in pod_desc["metadata"]["labels"]:
-            fields["appName"] = pod_desc["metadata"]["labels"]["app"]
-        else:
-            fields["appName"] = pod_desc["metadata"]["labels"]["app.kubernetes.io/name"]
 
+        if 'app' in pod_desc["metadata"]["labels"]:
+            container.fields["appName"] = pod_desc["metadata"]["labels"]["app"]
+        else:
+            container.fields["appName"] = pod_desc["metadata"]["labels"]["app.kubernetes.io/name"]
+
+        container.fields["workloadType"] = pod_desc["metadata"]["ownerReferences"][0]["kind"]
+
+        # Storage-specific logic (a part of)
+        # Note: pod_volumes will be used later when parsing containers
         try:
             pod_volumes = pod_desc['spec']['volumes']
         except KeyError:
             pod_volumes = []
 
-        if "initContainers" in pod_desc["spec"]:
-            container_index_in_pod = -1
-            for container in pod_desc["spec"]["initContainers"]:
-                container_index_in_pod = container_index_in_pod + 1
-                self.parse_container_resources(container=container, containerType="init", pod_volumes=pod_volumes)
+        # Container-specific logic
+        container_desc: JSON
 
-        container_index_in_pod = -1
-        for container in pod_desc["spec"]["containers"]:
-            container_index_in_pod = container_index_in_pod + 1
-            self.parse_container_resources(container=container, containerType="reg", pod_volumes=pod_volumes)
+        if "initContainers" in pod_desc["spec"]:
+            for container_desc in pod_desc["spec"]["initContainers"]:
+                self.parse_container_resources(container_desc=container_desc, containerType="init", pod_volumes=pod_volumes)
+
+        if "containers" in pod_desc["spec"]:
+            for container_desc in pod_desc["spec"]["containers"]:
+                self.parse_container_resources(container_desc=container_desc, containerType="reg", pod_volumes=pod_volumes)
 
     def load_pvc(self, pvc_desc: JSON, context: Dict) -> None:
         logger.debug("Parsing PVC {}".format(context))
 
-        pvc = self.add_pvc()  # Note: this will fill index
-
-        # TODO: Delete
-        """
-            'key': '',
-            'index': 0,  # int - global numeration of PVCs
-            'uid': '',  # str
-
-            'name': '',  # str - used for binding with containers
-            'storageClassName': '',  # str
-
-            'containerList': set(),  # List of strings - keys of containers using this PVC
-            'containerQuantity': int,  # int, containers using this PVC
-
-            'requests': 0  # int, bytes
-
-        """
+        pvc = self.add_pvc()
 
         pvc.fields['name'] = pvc_desc['metadata']['name']
 
@@ -897,9 +897,6 @@ class KubernetesResourceSet:
         pvc.fields['uid'] = pvc_desc['metadata']['uid']
         pvc.fields['storageClassName'] = pvc_desc['spec']['storageClassName']
         pvc.fields['requests'] = res_mem_str_to_bytes(pvc_desc['spec']['resources']['requests']['storage'])
-
-        pvc.make_key()
-
 
     # Get FIRST container by key
     def get_container_by_key(self, key) -> Union[ContainerListItem, None]:
@@ -975,7 +972,7 @@ def parse_args():
         -f workloadType=Replica
         
         Filter all ReplicaSets and StatefulSets
-        -f kind=Replica\|State
+        -f kind=Replica\\|State
         -f kind='Replica|State'
         
         Filter all non-Jobs:
