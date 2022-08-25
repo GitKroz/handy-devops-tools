@@ -67,7 +67,7 @@ class ContainerListItem:
             "index": 0,  # int: global numeration of containers
             "localIndex": 0,  # int: numeration of container within pod
             "type": "",  # str: init, reg
-            "containerName": "",  # str
+            "name": "",  # str
 
             "containerCPURequests": 0,  # int, milliCore
             "containerCPULimits": 0,  # int, milliCore
@@ -107,7 +107,7 @@ class ContainerListItem:
             "index": 0,
             "localIndex": 0,
             "type": 0,
-            "containerName": 0,
+            "name": 0,
 
             "containerCPURequests": 0,
             "containerCPULimits": 0,
@@ -145,7 +145,7 @@ class ContainerListItem:
             "index": '>',
             "localIndex": '>',
             "type": '<',
-            "containerName": '<',
+            "name": '<',
 
             "containerCPURequests": '>',
             "containerCPULimits": '>',
@@ -171,13 +171,13 @@ class ContainerListItem:
     def generate_keys(self):
         self.fields['appKey'] = self.fields['appName']
         self.fields['podKey'] = self.fields['appKey'] + '/' + str(self.fields['podLocalIndex'])
-        self.fields['key'] = self.fields['podKey'] + '/' + self.fields['containerName']
+        self.fields['key'] = self.fields['podKey'] + '/' + self.fields['name']
 
     def has_pod(self) -> bool:
         return self.fields["podName"] != ""
 
     def has_container(self) -> bool:
-        return self.fields["containerName"] != ""
+        return self.fields["name"] != ""
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return False
@@ -277,9 +277,9 @@ class ContainerListItem:
         # TODO: exclude usage of 'prev_container'
 
         # TODO: add to commandline arguments
-        columns = ['podIndex', 'workloadType', 'podName', 'type', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
+        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'containerPVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'containerName', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'containerCPURequests', 'containerCPULimits', 'containerMemoryRequests', 'containerMemoryLimits', 'containerPVCRequests', 'change', 'ref_containerCPURequests', 'ref_containerCPULimits', 'ref_containerMemoryRequests', 'ref_containerMemoryLimits', 'ref_containerPVCRequests']
 
         template = ""
         for column in columns:
@@ -347,7 +347,7 @@ class ContainerListItem:
         container_template = \
             " " * container_indent + \
             "({type:<4}) " + \
-            "{containerName:<" + str(containerName_width + 2) + "}" + \
+            "{name:<" + str(containerName_width + 2) + "}" + \
             "{containerCPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
             "{containerCPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
             "{containerMemoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
@@ -386,7 +386,7 @@ class ContainerListItem:
             self.fields["podIndex"],
             self.fields["podName"],
             self.fields["type"],
-            self.fields["containerName"],
+            self.fields["name"],
 
             self.fields["containerCPURequests"],
             self.fields["containerCPULimits"],
@@ -448,7 +448,7 @@ class ContainerListHeader(ContainerListItem):
             "index": "N",
             "localIndex": "LN",
             "type": "Type",
-            "containerName": "Container",
+            "name": "Container",
 
             "containerCPURequests": "CPU_R",
             "containerCPULimits": "CPU_L",
@@ -545,7 +545,7 @@ class KubernetesResourceSet:
 
     def renew_keys(self) -> None:
         # Sort
-        self.containers = sorted(self.containers, key=lambda c: (c.fields['appName'] + '/' + c.fields['podName'] + '/' + c.fields['containerName']))
+        self.containers = sorted(self.containers, key=lambda c: (c.fields['appName'] + '/' + c.fields['podName'] + '/' + c.fields['name']))
         self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['name'])
 
         # Regenerate indices and keys: containers
@@ -631,7 +631,7 @@ class KubernetesResourceSet:
 
         for container in self.containers:
             matches = True
-            for field in ["workloadType", "podName", "type", "containerName"]:
+            for field in ["workloadType", "podName", "type", "name"]:
                 matches = matches and bool(re.search(criteria.fields[field], container.fields[field]))
 
             if matches:
@@ -687,7 +687,7 @@ class KubernetesResourceSet:
         r.fields["podKey"] = ""
         r.fields["podIndex"] = ""
         r.fields["podName"] = pod_count
-        r.fields["containerName"] = container_count
+        r.fields["name"] = container_count
 
         r.fields["change"] = "Unchanged"
         if with_changes:
@@ -724,7 +724,7 @@ class KubernetesResourceSet:
         used_pvc_names = self.get_used_pvcs()
         total = self.get_resources_total(with_changes=with_changes)
         total.fields['podName'] = "{} pods using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
-        total.fields['containerName'] = "{} containers".format(total.fields['containerName'])
+        total.fields['name'] = "{} containers".format(total.fields['name'])
         total.print_table(raw_units, None, with_changes)
 
         # Non-jobs, non-init containers
@@ -737,7 +737,7 @@ class KubernetesResourceSet:
         used_pvc_names = running.get_used_pvcs()
         total = running.get_resources_total(with_changes=with_changes)
         total.fields['podName'] = "{} non-jobs using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
-        total.fields['containerName'] = "{} non-init containers".format(total.fields['containerName'])
+        total.fields['name'] = "{} non-init containers".format(total.fields['name'])
         total.print_table(raw_units, None, with_changes)
 
     def print_tree(self, raw_units: bool, with_changes: bool):
@@ -803,7 +803,7 @@ class KubernetesResourceSet:
         container: ContainerListItem
         container = self.add_container()
 
-        container.fields["containerName"] = container_desc["name"]
+        container.fields["name"] = container_desc["name"]
         container.fields["type"] = container_type
 
         try:
@@ -1033,7 +1033,7 @@ def parse_args():
 
     epilog = \
         """
-        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, containerName (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
+        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, name (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
         
         Examples:\n
         
@@ -1097,7 +1097,7 @@ def parse_filter_expression(criteria: str) -> ContainerListItem:
                 "kind": "workloadType",
                 "pod": "podName",
                 "type": "type",
-                "container": "containerName",
+                "container": "name",
             }
             if parts[0] in aliases.keys():
                 parts[0] = aliases[parts[0]]
