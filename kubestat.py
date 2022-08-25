@@ -12,6 +12,8 @@ import copy
 import re
 import subprocess
 
+from collections import OrderedDict
+
 ################################################################################
 # Constants, global variables, types
 ################################################################################
@@ -31,7 +33,7 @@ args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
 ################################################################################
 
 class ContainerListItem:
-    fields: Dict = {}
+    fields: OrderedDict = OrderedDict()  # Preserving elements order is important for exporting CSV
 
     column_separator: str
 
@@ -52,47 +54,47 @@ class ContainerListItem:
                 self.fields[key] = values[key]
 
     def reset(self):
-        self.fields = {
-            "appKey": "",  # str
-            "appIndex": 0,  # int: global numeration of application
-            "appName": "",  # str: can be viewed as pod name without suffixes
-            "workloadType": "",  # str: DaemonSet, ReplicaSet, StatefulSet, Job
+        self.fields = OrderedDict([
+            ("appKey", ""),  # str
+            ("appIndex", 0),  # int: global numeration of application
+            ("appName", ""),  # str: can be viewed as pod name without suffixes
+            ("workloadType", ""),  # str: DaemonSet, ReplicaSet, StatefulSet, Job
 
-            "podKey": "",  # str
-            "podIndex": 0,  # int: global numeration of pods
-            "podLocalIndex": 0,  # int: numeration of pods within application (ReplicaSet, DaemonSet, etc)
-            "podName": "",  # str
+            ("podKey", ""),  # str
+            ("podIndex", 0),  # int: global numeration of pods
+            ("podLocalIndex", 0),  # int: numeration of pods within application (ReplicaSet, DaemonSet, etc)
+            ("podName", ""),  # str
 
-            "key": "",  # str
-            "index": 0,  # int: global numeration of containers
-            "localIndex": 0,  # int: numeration of container within pod
-            "type": "",  # str: init, reg
-            "name": "",  # str
+            ("key", ""),  # str
+            ("index", 0),  # int: global numeration of containers
+            ("localIndex", 0),  # int: numeration of container within pod
+            ("type", ""),  # str: init, reg
+            ("name", ""),  # str
 
-            "CPURequests": 0,  # int, milliCore
-            "CPULimits": 0,  # int, milliCore
-            "memoryRequests": 0,  # int, bytes
-            "memoryLimits": 0,  # int, bytes
-            "ephStorageRequests": 0,  # int, bytes
-            "ephStorageLimits": 0,  # int, bytes
+            ("CPURequests", 0),  # int, milliCore
+            ("CPULimits", 0),  # int, milliCore
+            ("memoryRequests", 0),  # int, bytes
+            ("memoryLimits", 0),  # int, bytes
+            ("ephStorageRequests", 0),  # int, bytes
+            ("ephStorageLimits", 0),  # int, bytes
 
-            "PVCList": set(),  # List of strings
-            "PVCQuantity": 0,  # int
-            "PVCRequests": 0,  # int, bytes
+            ("PVCList", set()),  # List of strings
+            ("PVCQuantity", 0),  # int
+            ("PVCRequests", 0),  # int, bytes
 
-            "change": "Unchanged",  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
+            ("change", "Unchanged"),  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
 
-            "ref_CPURequests": 0,  # int, milliCore
-            "ref_CPULimits": 0,  # int, milliCore
-            "ref_memoryRequests": 0,  # int, bytes
-            "ref_memoryLimits": 0,  # int, bytes
-            "ref_ephStorageRequests": 0,  # int, bytes
-            "ref_ephStorageLimits": 0,  # int, bytes
+            ("ref_CPURequests", 0),  # int, milliCore
+            ("ref_CPULimits", 0),  # int, milliCore
+            ("ref_memoryRequests", 0),  # int, bytes
+            ("ref_memoryLimits", 0),  # int, bytes
+            ("ref_ephStorageRequests", 0),  # int, bytes
+            ("ref_ephStorageLimits", 0),  # int, bytes
 
-            "ref_PVCList": set(),  # List of strings
-            "ref_PVCQuantity": 0,  # int
-            "ref_PVCRequests": 0,  # int, bytes
-        }
+            ("ref_PVCList", set()),  # List of strings
+            ("ref_PVCQuantity", 0),  # int
+            ("ref_PVCRequests", 0)  # int, bytes
+        ])
 
     @staticmethod
     def reset_field_widths():
@@ -394,42 +396,8 @@ class ContainerListItem:
     def print_csv(self):
         csv_writer = csv.writer(sys.stdout, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-        csv_writer.writerow([
-            self.fields["key"],
-            self.fields["podKey"],
-
-            self.fields["appIndex"],
-            self.fields["appName"],
-            self.fields["workloadType"],
-            self.fields["podIndex"],
-            self.fields["podName"],
-            self.fields["type"],
-            self.fields["name"],
-
-            self.fields["CPURequests"],
-            self.fields["CPULimits"],
-            self.fields["memoryRequests"],
-            self.fields["memoryLimits"],
-            self.fields["ephStorageRequests"],
-            self.fields["ephStorageLimits"],
-
-            self.fields["PVCList"],
-            self.fields["PVCQuantity"],
-            self.fields["PVCRequests"],
-
-            self.fields["change"],
-
-            self.fields["ref_CPURequests"],
-            self.fields["ref_CPULimits"],
-            self.fields["ref_memoryRequests"],
-            self.fields["ref_memoryLimits"],
-            self.fields["ref_ephStorageRequests"],
-            self.fields["ref_ephStorageLimits"],
-
-            self.fields["ref_PVCList"],
-            self.fields["ref_PVCQuantity"],
-            self.fields["ref_PVCRequests"]
-        ])
+        values = self.get_formatted_fields(raw_units=True)
+        csv_writer.writerow(values.values())
 
 
 class ContainerListLine(ContainerListItem):
@@ -440,7 +408,6 @@ class ContainerListLine(ContainerListItem):
     def reset(self):
         for k, v in ContainerListItem.fields_width.items():
             self.fields[k] = SYM_LINE * ContainerListItem.fields_width[k]
-        logger.debug("Tick")
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
@@ -455,47 +422,47 @@ class ContainerListHeader(ContainerListItem):
         super().__init__()
 
     def reset(self):
-        self.fields = {
-            "appKey": "App Key",
-            "appIndex": "AppN",
-            "appName": "Application",
-            "workloadType": "Workload",
+        self.fields = OrderedDict([
+            ("appKey", "App Key"),
+            ("appIndex", "AppN"),
+            ("appName", "Application"),
+            ("workloadType", "Workload"),
 
-            "podKey": "Pod Key",
-            "podIndex": "PodN",
-            "podLocalIndex": "PodLN",
-            "podName": "Pod",
+            ("podKey", "Pod Key"),
+            ("podIndex", "PodN"),
+            ("podLocalIndex", "PodLN"),
+            ("podName", "Pod"),
 
-            "key": "Container Key",
-            "index": "N",
-            "localIndex": "LN",
-            "type": "Type",
-            "name": "Container",
+            ("key", "Container Key"),
+            ("index", "N"),
+            ("localIndex", "LN"),
+            ("type", "Type"),
+            ("name", "Container"),
 
-            "CPURequests": "CPU_R",
-            "CPULimits": "CPU_L",
-            "memoryRequests": "Mem_R",
-            "memoryLimits": "Mem_L",
-            "ephStorageRequests": "Eph_R",
-            "ephStorageLimits": "Eph_L",
+            ("CPURequests", "CPU_R"),
+            ("CPULimits", "CPU_L"),
+            ("memoryRequests", "Mem_R"),
+            ("memoryLimits", "Mem_L"),
+            ("ephStorageRequests", "Eph_R"),
+            ("ephStorageLimits", "Eph_L"),
 
-            "PVCList": "PVC List",
-            "PVCQuantity": "PVC_Q",
-            "PVCRequests": "PVC_R",
+            ("PVCList", "PVC List"),
+            ("PVCQuantity", "PVC_Q"),
+            ("PVCRequests", "PVC_R"),
 
-            "change": "Change",
+            ("change", "Change"),
 
-            "ref_CPURequests": "rCPU_R",
-            "ref_CPULimits": "rCPU_L",
-            "ref_memoryRequests": "rMem_R",
-            "ref_memoryLimits": "rMem_L",
-            "ref_ephStorageRequests": "rEph_R",
-            "ref_ephStorageLimits": "rEph_L",
+            ("ref_CPURequests", "rCPU_R"),
+            ("ref_CPULimits", "rCPU_L"),
+            ("ref_memoryRequests", "rMem_R"),
+            ("ref_memoryLimits", "rMem_L"),
+            ("ref_ephStorageRequests", "rEph_R"),
+            ("ref_ephStorageLimits", "rEph_L"),
 
-            "ref_PVCList": "rPVC List",
-            "ref_PVCQuantity": "rPVC_Q",
-            "ref_PVCRequests": "rPVC_R",
-        }
+            ("ref_PVCList", "rPVC List"),
+            ("ref_PVCQuantity", "rPVC_Q"),
+            ("ref_PVCRequests", "rPVC_R")
+        ])
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
