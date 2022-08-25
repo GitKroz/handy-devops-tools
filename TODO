@@ -1,4 +1,8 @@
 kubestat.py
+* Rename keys/indices fields
+* Add keys/indices fields
+* Add context variable where present
+* Bind PVC and containers
 * Summary to tree view
 * Tree mode must respect 'with_changes'
 * For filter - make "does NOT match regex"
