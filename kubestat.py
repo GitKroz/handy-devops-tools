@@ -245,7 +245,7 @@ class ContainerListItem:
         # Make sure all fields are strings
         for k, v in formatted_fields.items():
             if type(v) is set:
-                formatted_fields[k] = '{}'.format(list(v))
+                formatted_fields[k] = ', '.join(v)
             elif type(v) is not str:
                 formatted_fields[k] = '{}'.format(v)
 
