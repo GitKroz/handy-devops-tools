@@ -381,9 +381,7 @@ class ContainerListItem:
 
         return template.format(**formatted_fields)
 
-    def print_table(self, raw_units: bool, prev_container, with_changes: bool):
-        # TODO: exclude usage of 'prev_container'
-
+    def print_table(self, raw_units: bool, with_changes: bool):
         # TODO: move to common settings
         columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         if with_changes:  # TODO: Check
@@ -801,31 +799,29 @@ class KubernetesResourceSet:
 
     def print_table(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
 
-        ContainerListHeader().print_table(raw_units, None, with_changes)
-        ContainerListLine().print_table(raw_units, None, with_changes)
+        ContainerListHeader().print_table(raw_units=raw_units, with_changes=with_changes)
+        ContainerListLine().print_table(raw_units=raw_units, with_changes=with_changes)
 
-        prev_container = None
         for container in self.containers:
-            container.print_table(raw_units, prev_container, with_changes)
-            prev_container = container
+            container.print_table(raw_units=raw_units, with_changes=with_changes)
 
-        ContainerListLine().print_table(raw_units, None, with_changes)
+        ContainerListLine().print_table(raw_units=raw_units, with_changes=with_changes)
 
         for summary_item in summary:
-            summary_item.print_table(raw_units, prev_container, with_changes)
+            summary_item.print_table(raw_units=raw_units, with_changes=with_changes)
 
     def print_tree(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
-        self.set_optimal_field_width(raw_units)
+        self.set_optimal_field_width(raw_units=raw_units)
 
-        ContainerListHeader().print_tree(raw_units, None, with_changes)
-        ContainerListLine().print_tree(raw_units, None, with_changes)
+        ContainerListHeader().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
+        ContainerListLine().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
 
         prev_container = None
         for container in self.containers:
-            container.print_tree(raw_units, prev_container, with_changes=with_changes)
+            container.print_tree(raw_units=raw_units, prev_container=prev_container, with_changes=with_changes)
             prev_container = container
 
-        ContainerListLine().print_tree(raw_units, None, with_changes)
+        ContainerListLine().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
 
         for summary_item in summary:
             summary_item.print_tree(raw_units, prev_container, with_changes)
