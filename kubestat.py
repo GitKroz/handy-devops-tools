@@ -409,15 +409,15 @@ class ContainerListItem:
             row = COLOR_WHITE + row + COLOR_RESET
             print(row)
 
-        # Container: first column
+        # First column (container)
         tree_branch: str = dynamic_fields['_tree_branch_container']
 
-        # Container: rest of the columns
+        # Rest of the columns (container)
         # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
 
-        # Container: table row
+        # Table row (container)
         row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
         row = row_template.format(tree_branch, tree_branch_values)
         print(row)
@@ -442,9 +442,17 @@ class ContainerListLine(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        # First column
+        tree_branch = self.fields['_tree_branch']
+
+        # Rest of the columns
         # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
+
+        # Table row
+        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
+        row = row_template.format(tree_branch, tree_branch_values)
         print(row)
 
 
@@ -501,18 +509,16 @@ class ContainerListHeader(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        # # TODO: move to common settings
-        # columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        # row = self.fields_to_table(columns=columns, raw_units=raw_units)
-        # print(row)
+        # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
         tree_branch_header = dynamic_fields['_tree_branch_header']
 
+        # Rest of the columns
         # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
 
-        # Container: table row
+        # Table row
         row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
         row = row_template.format(tree_branch_header, tree_branch_values)
         row = COLOR_WHITE + row + COLOR_RESET
@@ -524,14 +530,16 @@ class ContainerListSummary(ContainerListItem):
         super().__init__()
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
         tree_branch_summary = dynamic_fields['_tree_branch_summary']
 
+        # Rest of the columns
         # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
 
-        # Container: table row
+        # Table row
         row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
         row = row_template.format(tree_branch_summary, tree_branch_values)
         row = COLOR_WHITE + row + COLOR_RESET
