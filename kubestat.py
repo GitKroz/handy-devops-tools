@@ -744,8 +744,8 @@ class KubernetesResourceSet:
         r.fields["key"] = ""
         r.fields["podKey"] = ""
         r.fields["podIndex"] = ""
-        r.fields["podName"] = "{} pods using {} of {} PVCs {}".format(pod_quantity, used_pvc_quantity, pvc_quantity, pod_name_suffix)
-        r.fields["name"] = "{} containers {}".format(container_quantity, container_name_suffix)
+        r.fields["podName"] = "{} pods using {} of {} PVCs{}".format(pod_quantity, used_pvc_quantity, pvc_quantity, pod_name_suffix)
+        r.fields["name"] = "{} containers{}".format(container_quantity, container_name_suffix)
 
         r.fields["change"] = "Unchanged"
         if with_changes:
@@ -784,7 +784,7 @@ class KubernetesResourceSet:
                 "type": "^(?!init).*$"
             }
         ))
-        summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix='(non-jobs)', container_name_suffix='(non-init)'))
+        summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix=' (non-jobs)', container_name_suffix=' (non-init)'))
 
         # Printing
         if output_format == "table":
