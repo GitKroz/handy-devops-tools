@@ -162,7 +162,8 @@ class ContainerListItem:
             # Special dynamically generated fields
             '_tree_branch': 0,  # Combined
             '_tree_branch_pod': 0,
-            '_tree_branch_container': 0
+            '_tree_branch_container': 0,
+            '_tree_branch_summary': 0
         }
 
         ContainerListItem.fields_alignment = {  # < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
@@ -209,7 +210,8 @@ class ContainerListItem:
             # Special dynamically generated fields
             '_tree_branch': '<',  # Combined
             '_tree_branch_pod': '<',
-            '_tree_branch_container': '<'
+            '_tree_branch_container': '<',
+            '_tree_branch_summary': '<',
         }
 
     def generate_keys(self):
@@ -290,6 +292,7 @@ class ContainerListItem:
         # TODO: to configurable parameters
         pod_indent_width: int = 0
         container_indent_width: int = 6
+        summary_indent_width: int = 4
 
         # Pod
         columns = ['podIndex', 'workloadType', 'podName']
@@ -301,10 +304,15 @@ class ContainerListItem:
         value = self.fields_to_table(columns=columns, raw_units=raw_units)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
+        # Summary - relevant only for summary items
+        dynamic_fields['_tree_branch_summary'] = (' ' * summary_indent_width) + self.fields['podName'] + ', ' + self.fields['name']
+        fake_tree_branch_summary = '999 pods 99 of 99 PVCs (non-jobs), 999 containers (non-init)'
+
         # Combined tree branch - needed to calculate field width
         dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
             len(dynamic_fields['_tree_branch_pod']),
-            len(dynamic_fields['_tree_branch_container'])
+            len(dynamic_fields['_tree_branch_container']),
+            len(fake_tree_branch_summary)
         )
 
         # Result
@@ -485,6 +493,25 @@ class ContainerListHeader(ContainerListItem):
         print(row)
 
 
+class ContainerListSummary(ContainerListItem):
+    def __init__(self):
+        super().__init__()
+
+    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        tree_branch_summary = dynamic_fields['_tree_branch_summary']
+
+        # TODO: move to common settings
+        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
+
+        # Container: table row
+        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
+        row = row_template.format(tree_branch_summary, tree_branch_values)
+        row = COLOR_WHITE + row + COLOR_RESET
+        print(row)
+
+
 class PVCListItem:
     fields: Dict = {}
 
@@ -630,7 +657,7 @@ class KubernetesResourceSet:
         return r
 
     def get_resources_total(self, with_changes: bool, pod_name_suffix: str = '', container_name_suffix: str = '') -> ContainerListItem:
-        r = ContainerListItem()
+        r = ContainerListSummary()
 
         pod_quantity = 0
         container_quantity = 0
@@ -712,8 +739,42 @@ class KubernetesResourceSet:
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
-    def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
+    def print(self, output_format: str, raw_units: bool, with_changes: bool):
+        global logger
+
+        # Columns width (not needed for CSV)
         self.set_optimal_field_width(raw_units)
+
+        # Summary lines
+        summary = list()
+
+        summary.append(self.get_resources_total(with_changes=with_changes))
+
+        running = self.filter(ContainerListItem(  # Non-jobs, non-init containers
+            {
+                "workloadType": '^(?!Job).*$',
+                "type": "^(?!init).*$"
+            }
+        ))
+        summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix='(non-jobs)', container_name_suffix='(non-init)'))
+
+        # Printing
+        if output_format == "table":
+            logger.debug("Output format: table")
+            self.print_table(raw_units=raw_units, pretty=False, with_changes=with_changes, summary=summary)
+        elif output_format == "pretty":  # TODO: delete
+            logger.debug("Output format: pretty")
+            self.print_table(raw_units=raw_units, pretty=True, with_changes=with_changes)
+        elif output_format == "tree":
+            logger.debug("Output format: tree")
+            self.print_tree(raw_units=raw_units, with_changes=True, summary=summary)
+        elif output_format == "csv":
+            logger.debug("Output format: csv")
+            self.print_csv()
+        else:
+            raise RuntimeError("Invalid output format: {}".format(output_format))
+
+    def print_table(self, raw_units: bool, pretty: bool, with_changes: bool, summary: Optional[List] = False):
 
         ContainerListHeader().print_table(raw_units, None, with_changes)
         ContainerListLine().print_table(raw_units, None, with_changes)
@@ -726,24 +787,10 @@ class KubernetesResourceSet:
 
         ContainerListLine().print_table(raw_units, None, with_changes)
 
-        # Calculate total
-        total: ContainerListItem
+        for summary_item in summary:
+            summary_item.print_table(raw_units, prev_container, with_changes)
 
-        # All total
-        total = self.get_resources_total(with_changes=with_changes)
-        total.print_table(raw_units, None, with_changes)
-
-        # Non-jobs, non-init containers
-        running = self.filter(ContainerListItem(
-            {
-                "workloadType": '^(?!Job).*$',
-                "type": "^(?!init).*$"
-            }
-        ))
-        total = running.get_resources_total(with_changes=with_changes, pod_name_suffix='(non-job)', container_name_suffix='(non-init)')
-        total.print_table(raw_units, None, with_changes)
-
-    def print_tree(self, raw_units: bool, with_changes: bool):
+    def print_tree(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
         self.set_optimal_field_width(raw_units)
 
         ContainerListHeader().print_tree(raw_units, None, with_changes)
@@ -753,6 +800,11 @@ class KubernetesResourceSet:
         for container in self.containers:
             container.print_tree(raw_units, prev_container, with_changes=with_changes)
             prev_container = container
+
+        ContainerListLine().print_tree(raw_units, None, with_changes)
+
+        for summary_item in summary:
+            summary_item.print_tree(raw_units, prev_container, with_changes)
 
     def print_csv(self):
         ContainerListHeader().print_csv()
@@ -1237,38 +1289,24 @@ def main():
 
     parse_args()
 
-    target_res = KubernetesResourceSet()
-    ref_res = KubernetesResourceSet()
+    all_resources = KubernetesResourceSet()
+    ref_resources = KubernetesResourceSet()
 
     with_changes = args.reference is not None
 
     try:
         for i in args.inputs:
-            target_res.load(i)
+            all_resources.load(i)
 
         if with_changes:
-            ref_res.load(args.reference)
-            target_res.compare(ref_res)
+            ref_resources.load(args.reference)
+            all_resources.compare(ref_resources)
 
-        pods = target_res.filter(
+        resources = all_resources.filter(
             parse_filter_expression(args.filter_criteria)
         )
 
-        if args.output_format == "table":
-            pods.print_table(raw_units=args.raw_units, pretty=False, with_changes=with_changes)
-            logger.debug("Output format: table")
-        elif args.output_format == "pretty":
-            pods.print_table(raw_units=args.raw_units, pretty=True, with_changes=with_changes)
-            logger.debug("Output format: pretty")
-        elif args.output_format == "tree":
-            pods.print_tree(raw_units=args.raw_units, with_changes=True)
-            logger.debug("Output format: tree")
-        elif args.output_format == "csv":
-            pods.print_csv()
-            logger.debug("Output format: csv")
-        else:
-            raise RuntimeError("Invalid output format: {}".format(args.output_format))
-
+        resources.print(output_format=args.output_format, raw_units=args.raw_units, with_changes=with_changes)
     except Exception as e:
         logger.error(("{}".format(e)))
         traceback.print_exc()
