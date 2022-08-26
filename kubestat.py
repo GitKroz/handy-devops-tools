@@ -1316,9 +1316,10 @@ def main():
             all_resources.load(source=source)
 
         with_changes = False
-        for source in args.references:
-            ref_resources.load(source=source)
-            with_changes = True
+        if args.references is not None:
+            for source in args.references:
+                ref_resources.load(source=source)
+                with_changes = True
 
         if with_changes:
             all_resources.compare(ref_resources)
