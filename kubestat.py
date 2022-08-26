@@ -620,7 +620,7 @@ class KubernetesResourceSet:
 
         return r
 
-    def get_used_pvcs(self) -> Set:
+    def get_used_pvc_names(self) -> Set:
         r = set()
 
         for pvc in self.pvcs:
@@ -629,20 +629,21 @@ class KubernetesResourceSet:
 
         return r
 
-    def get_resources_total(self, with_changes: bool) -> ContainerListItem:
+    def get_resources_total(self, with_changes: bool, pod_name_suffix: str = '', container_name_suffix: str = '') -> ContainerListItem:
         r = ContainerListItem()
 
-        pod_count = 0
-        container_count = 0
+        pod_quantity = 0
+        container_quantity = 0
 
+        # Pod quantity, container quantity, sum of all resources (except PVC)
         prev_container = None
         for container in self.containers:
             if container.is_deleted():  # TODO: review logic
                 continue
 
-            container_count = container_count + 1
+            container_quantity = container_quantity + 1
             if not container.is_same_pod(prev_container):
-                pod_count = pod_count + 1
+                pod_quantity = pod_quantity + 1
 
             r.fields["CPURequests"] = r.fields["CPURequests"] + container.fields["CPURequests"]
             r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
@@ -659,20 +660,37 @@ class KubernetesResourceSet:
             r.fields["ref_ephStorageLimits"] = r.fields["ref_ephStorageLimits"] + container.fields["ref_ephStorageLimits"]
 
             r.fields["PVCList"] = r.fields["PVCList"].union(container.fields["PVCList"])
+            r.fields["ref_PVCList"] = r.fields["ref_PVCList"].union(container.fields["ref_PVCList"])
 
             prev_container = container
 
+        # PVC quantity
         r.fields['PVCQuantity'] = len(r.fields['PVCList'])
+        r.fields['ref_PVCQuantity'] = len(r.fields['ref_PVCList'])
+
+        # Sum of all USED PVC storage sizes
         for pvc_name in r.fields['PVCList']:
             pvc = self.get_pvc_by_name(pvc_name)
             if pvc is not None:
                 r.fields['PVCRequests'] = r.fields['PVCRequests'] + pvc.fields['requests']
 
+        for pvc_name in r.fields['ref_PVCList']:
+            pvc = self.get_pvc_by_name(pvc_name)
+            if pvc is not None:
+                r.fields['ref_PVCRequests'] = r.fields['ref_PVCRequests'] + pvc.fields['ref_requests']
+
+        # PVC statistic
+        used_pvc_names = self.get_used_pvc_names()
+        used_pvc_quantity = len(used_pvc_names)
+        pvc_quantity = self.get_pvc_quantity()
+        # TODO: Quantity of reference PVCs vs quantity of subject PVCs
+
+        # Other fields
         r.fields["key"] = ""
         r.fields["podKey"] = ""
         r.fields["podIndex"] = ""
-        r.fields["podName"] = pod_count
-        r.fields["name"] = container_count
+        r.fields["podName"] = "{} pods using {} of {} PVCs {}".format(pod_quantity, used_pvc_quantity, pvc_quantity, pod_name_suffix)
+        r.fields["name"] = "{} containers {}".format(container_quantity, container_name_suffix)
 
         r.fields["change"] = "Unchanged"
         if with_changes:
@@ -694,7 +712,6 @@ class KubernetesResourceSet:
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
-
     def print_table(self, raw_units: bool, pretty: bool, with_changes: bool):
         self.set_optimal_field_width(raw_units)
 
@@ -713,10 +730,7 @@ class KubernetesResourceSet:
         total: ContainerListItem
 
         # All total
-        used_pvc_names = self.get_used_pvcs()
         total = self.get_resources_total(with_changes=with_changes)
-        total.fields['podName'] = "{} pods using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
-        total.fields['name'] = "{} containers".format(total.fields['name'])
         total.print_table(raw_units, None, with_changes)
 
         # Non-jobs, non-init containers
@@ -726,10 +740,7 @@ class KubernetesResourceSet:
                 "type": "^(?!init).*$"
             }
         ))
-        used_pvc_names = running.get_used_pvcs()
-        total = running.get_resources_total(with_changes=with_changes)
-        total.fields['podName'] = "{} non-jobs using {}/{} PVCs".format(total.fields['podName'], len(used_pvc_names), len(self.pvcs))
-        total.fields['name'] = "{} non-init containers".format(total.fields['name'])
+        total = running.get_resources_total(with_changes=with_changes, pod_name_suffix='(non-job)', container_name_suffix='(non-init)')
         total.print_table(raw_units, None, with_changes)
 
     def print_tree(self, raw_units: bool, with_changes: bool):
@@ -977,6 +988,9 @@ class KubernetesResourceSet:
                 return pvc
 
         return None
+
+    def get_pvc_quantity(self) -> int:
+        return len(self.pvcs)
 
     def compare(self, ref_res):
         # Added and modified

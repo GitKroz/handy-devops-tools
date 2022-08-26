@@ -1,10 +1,12 @@
 kubestat.py
 * Tree view: add summary
+* CSV headers shall contain field names, not aliases
 * Delete pretty table view
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant
 * Tree mode must respect 'with_changes'
 * For filter - make "does NOT match regex"
+* For per-container parsing: make configurable (may be) or simplify
 * Toggle Megabytes | Mibibytes units
 * Deleted Pod use case
 * Make generic mechanism of parsing resources: CPU, memory, ephemeral-storage, storage
