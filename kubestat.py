@@ -789,10 +789,7 @@ class KubernetesResourceSet:
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
-            self.print_table(raw_units=raw_units, pretty=False, with_changes=with_changes, summary=summary)
-        elif output_format == "pretty":  # TODO: delete
-            logger.debug("Output format: pretty")
-            self.print_table(raw_units=raw_units, pretty=True, with_changes=with_changes)
+            self.print_table(raw_units=raw_units, with_changes=with_changes, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
             self.print_tree(raw_units=raw_units, with_changes=True, summary=summary)
@@ -802,7 +799,7 @@ class KubernetesResourceSet:
         else:
             raise RuntimeError("Invalid output format: {}".format(output_format))
 
-    def print_table(self, raw_units: bool, pretty: bool, with_changes: bool, summary: Optional[List] = False):
+    def print_table(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
 
         ContainerListHeader().print_table(raw_units, None, with_changes)
         ContainerListLine().print_table(raw_units, None, with_changes)
@@ -810,8 +807,7 @@ class KubernetesResourceSet:
         prev_container = None
         for container in self.containers:
             container.print_table(raw_units, prev_container, with_changes)
-            if pretty:
-                prev_container = container
+            prev_container = container
 
         ContainerListLine().print_table(raw_units, None, with_changes)
 
@@ -1164,8 +1160,8 @@ def parse_args():
     )
     parser.add_argument('-f', '--filter', dest='filter_criteria', type=str,
                         help='Match only pods/containers matching criteria. Refer below for details.')
-    parser.add_argument('-o', '--output', dest='output_format', type=str, default='pretty',
-                        help='Specify output format: pretty, table, tree, csv')
+    parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree',
+                        help='Specify output format: tree, table, csv')
     parser.add_argument('-r', metavar='FILE', dest='reference', type=str,
                         help='Reference file or @namespace to compare with')  # TODO: Allow several references
     parser.add_argument('-u', dest='raw_units', action="store_true",
