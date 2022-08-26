@@ -1,5 +1,4 @@
 kubestat.py
-* Tree view: add header and line
 * Tree view: add color
 * Tree view: add summary
 * Delete pretty table view

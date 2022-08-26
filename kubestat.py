@@ -379,90 +379,6 @@ class ContainerListItem:
         row = row_template.format(tree_branch, tree_branch_values)
         print(row)
 
-    # # TODO: Update
-    # def get_tree_columns_width(self, with_changes: bool):
-    #     container_indent = 6
-
-    #     pod_width = 4 + 13 + (ContainerListItem.podName_width + 2)
-    #     container_width = container_indent + (4 + 2 + 1) + (ContainerListItem.containerName_width + 2)
-    #     item_width = max(pod_width, container_width)
-
-    #     resources_width = \
-    #         (ContainerListItem.containerCPURequests_width + 2) + \
-    #         (ContainerListItem.containerCPULimits_width + 2) + \
-    #         (ContainerListItem.containerMemoryRequests_width + 2) + \
-    #         (ContainerListItem.containerMemoryLimits_width + 2) + \
-    #         (ContainerListItem.containerPVCQuantity_width + 2) + \
-    #         (ContainerListItem.containerPVCRequests_width + 2)
-
-    #     if with_changes:
-    #         resources_width = resources_width + \
-    #                           2 + \
-    #                           18 + \
-    #                           (ContainerListItem.containerCPURequests_width + 2) + \
-    #                           (ContainerListItem.containerCPULimits_width + 2) + \
-    #                           (ContainerListItem.containerMemoryRequests_width + 2) + \
-    #                           (ContainerListItem.containerMemoryLimits_width + 2) + \
-    #                           (ContainerListItem.containerPVCQuantity_width + 2) + \
-    #                           (ContainerListItem.containerPVCRequests_width + 2)
-
-    #     return container_indent, item_width, resources_width
-
-    # def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-    #     formatted_fields = self.get_formatted_fields(raw_units)
-
-    #     # Calculating column widths
-    #     container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
-
-    #     # pod_width = 4 + 13 + (ContainerListItem.podName_width + 2)
-    #     # container_width = container_indent + (4 + 2 + 1) + (ContainerListItem.containerName_width + 2)
-    #     # item_width = max(pod_width, container_width)
-
-    #     podName_width = item_width - 4 - 13 - 2
-    #     containerName_width = item_width - container_indent - (4 + 2 + 1) - 2
-
-    #     # Add special line for pods
-    #     pod_template = ""
-    #     if not self.is_same_pod(prev_container):
-    #         # '\033[1;37m' +\
-    #         pod_template = \
-    #             "{podIndex:<4}" + \
-    #             "{workloadType:<13}" + \
-    #             "{podName:<" + str(podName_width + 2) + "}"
-    #         # "{appName:<" + str(ContainerListItem.appName_width + 2) + "}" + \
-
-    #         pod_template = self.decorate_changes(pod_template, is_pod_only=True)
-    #         pod_template = pod_template + '\n'
-
-    #     container_template = \
-    #         " " * container_indent + \
-    #         "({type:<4}) " + \
-    #         "{name:<" + str(containerName_width + 2) + "}" + \
-    #         "{CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-    #         "{CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-    #         "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-    #         "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-    #         "{PVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-    #         "{PVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
-
-    #     if with_changes:
-    #         container_template = container_template + \
-    #                              "  " + \
-    #                              "{change:<18}" + \
-    #                              "{ref_CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-    #                              "{ref_CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-    #                              "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-    #                              "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-    #                              "{ref_PVCQuantity:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-    #                              "{ref_PVCRequests:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}"
-    #     # " {key}"
-
-    #     container_template = self.decorate_changes(container_template, is_pod_only=False)
-
-    #     template = pod_template + container_template
-
-    #     print(template.format(**formatted_fields))
-
     def print_csv(self):
         csv_writer = csv.writer(sys.stdout, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
@@ -501,12 +417,12 @@ class ContainerListHeader(ContainerListItem):
             ("workloadType", "Workload"),
 
             ("podKey", "Pod Key"),
-            ("podIndex", "PodN"),
+            ("podIndex", "#"),
             ("podLocalIndex", "PodLN"),
             ("podName", "Pod"),
 
             ("key", "Container Key"),
-            ("index", "N"),
+            ("index", "ContN"),
             ("localIndex", "LN"),
             ("type", "Type"),
             ("name", "Container"),
@@ -533,42 +449,19 @@ class ContainerListHeader(ContainerListItem):
 
             ("ref_PVCList", "rPVC List"),
             ("ref_PVCQuantity", "rPVC_Q"),
-            ("ref_PVCRequests", "rPVC_R")
+            ("ref_PVCRequests", "rPVC_R"),
+
+            ("_tree_branch", "Resource")
         ])
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        # TODO: implement
-        return
-        # formatted_fields = self.get_formatted_fields(raw_units)
-
-        # container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
-
-        # formatted_fields['item_txt'] = "Item"
-
-        # template = \
-        #     "{item_txt:" + str(item_width) + "}" + \
-        #     "{CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-        #     "{CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-        #     "{memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-        #     "{memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-        #     "{PVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-        #     "{PVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
-
-        # if with_changes:
-        #     template = template + \
-        #                "  " + \
-        #                "{change:<18}" + \
-        #                "{ref_CPURequests:>" + str(ContainerListItem.containerCPURequests_width + 2) + "}" + \
-        #                "{ref_CPULimits:>" + str(ContainerListItem.containerCPULimits_width + 2) + "}" + \
-        #                "{ref_memoryRequests:>" + str(ContainerListItem.containerMemoryRequests_width + 2) + "}" + \
-        #                "{ref_memoryLimits:>" + str(ContainerListItem.containerMemoryLimits_width + 2) + "}" + \
-        #                "{ref_PVCQuantity:>" + str(ContainerListItem.containerPVCQuantity_width + 2) + "}" + \
-        #                "{ref_PVCRequests:>" + str(ContainerListItem.containerPVCRequests_width + 2) + "}"
-
-        # print(template.format(**formatted_fields))
+        # TODO: move to common settings
+        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        print(row)
 
 
 class PVCListItem:
