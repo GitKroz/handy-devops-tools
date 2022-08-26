@@ -113,7 +113,14 @@ class ContainerListItem:
 
             ("ref_PVCList", set()),  # List of strings
             ("ref_PVCQuantity", 0),  # int
-            ("ref_PVCRequests", 0)  # int, bytes
+            ("ref_PVCRequests", 0),  # int, bytes
+            # Special dynamically generated fields
+
+            ("_tree_branch", ''),  # str
+            ("_tree_branch_pod", ''),  # str
+            ("_tree_branch_container", ''),  # str
+            ("_tree_branch_summary", ''),  # str
+            ("_tree_branch_header", '')  # str
         ])
 
     @staticmethod
@@ -163,7 +170,8 @@ class ContainerListItem:
             '_tree_branch': 0,  # Combined
             '_tree_branch_pod': 0,
             '_tree_branch_container': 0,
-            '_tree_branch_summary': 0
+            '_tree_branch_summary': 0,
+            '_tree_branch_header': 0
         }
 
         ContainerListItem.fields_alignment = {  # < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
@@ -212,6 +220,7 @@ class ContainerListItem:
             '_tree_branch_pod': '<',
             '_tree_branch_container': '<',
             '_tree_branch_summary': '<',
+            '_tree_branch_header': '<'
         }
 
     def generate_keys(self):
@@ -293,6 +302,7 @@ class ContainerListItem:
         pod_indent_width: int = 0
         container_indent_width: int = 6
         summary_indent_width: int = 4
+        tree_branch_header_indent_width: int = 4
 
         # Pod
         columns = ['podIndex', 'workloadType', 'podName']
@@ -308,11 +318,15 @@ class ContainerListItem:
         dynamic_fields['_tree_branch_summary'] = (' ' * summary_indent_width) + self.fields['podName'] + ', ' + self.fields['name']
         fake_tree_branch_summary = '999 pods 99 of 99 PVCs (non-jobs), 999 containers (non-init)'
 
+        # Header - relevant only for header items
+        dynamic_fields['_tree_branch_header'] = (' ' * tree_branch_header_indent_width) + self.fields['_tree_branch']
+
         # Combined tree branch - needed to calculate field width
         dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
             len(dynamic_fields['_tree_branch_pod']),
             len(dynamic_fields['_tree_branch_container']),
-            len(fake_tree_branch_summary)
+            len(fake_tree_branch_summary),
+            len(dynamic_fields['_tree_branch_header'])
         )
 
         # Result
@@ -480,16 +494,28 @@ class ContainerListHeader(ContainerListItem):
             ("ref_PVCQuantity", "rPVC_Q"),
             ("ref_PVCRequests", "rPVC_R"),
 
-            ("_tree_branch", "Resource")
+            ("_tree_branch", "Resource")  # Note: this will be moved to _tree_branch_header and added with indent
         ])
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        # # TODO: move to common settings
+        # columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        # row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        # print(row)
+        dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        tree_branch_header = dynamic_fields['_tree_branch_header']
+
         # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
+
+        # Container: table row
+        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
+        row = row_template.format(tree_branch_header, tree_branch_values)
+        row = COLOR_WHITE + row + COLOR_RESET
         print(row)
 
 
