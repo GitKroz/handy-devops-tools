@@ -606,7 +606,7 @@ class KubernetesResourceSet:
                     pod_local_index = 0
                 else:
                     if not self.containers[container_index - 1].is_same_pod(container, trust_key=False):
-                        pod_local_index = pod_index + 1
+                        pod_local_index = pod_local_index + 1
             container.fields['podLocalIndex'] = pod_local_index + 1
 
             if container_index > 0:
