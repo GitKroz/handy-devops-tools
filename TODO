@@ -1,5 +1,4 @@
 kubestat.py
-* CSV headers shall contain field names, not aliases
 * Delete pretty table view
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant

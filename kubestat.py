@@ -454,6 +454,9 @@ class ContainerListLine(ContainerListItem):
         # Rest of the columns
         self.print_tree_row(first_column_value=tree_branch, raw_units=raw_units, colored=True)
 
+    def print_csv(self):
+        raise RuntimeError('ContainerListLine is not expected to be exported to CSV')
+
 
 class ContainerListHeader(ContainerListItem):
     def __init__(self):
@@ -515,6 +518,11 @@ class ContainerListHeader(ContainerListItem):
         # Rest of the columns
         self.print_tree_row(first_column_value=tree_branch_header, raw_units=raw_units, colored=True)
 
+    def print_csv(self):
+        for key in self.fields.keys():
+            self.fields[key] = key
+        super().print_csv()
+
 
 class ContainerListSummary(ContainerListItem):
     def __init__(self):
@@ -527,6 +535,9 @@ class ContainerListSummary(ContainerListItem):
 
         # Rest of the columns
         self.print_tree_row(first_column_value=tree_branch_summary, raw_units=raw_units, colored=True)
+
+    def print_csv(self):
+        raise RuntimeError('ContainerListSummary is not expected to be exported to CSV')
 
 
 class PVCListItem:
