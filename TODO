@@ -1,4 +1,5 @@
 kubestat.py
+* Bug: incorrect pod key for jobs
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant
 * Tree mode must respect 'with_changes'
