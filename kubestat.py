@@ -342,7 +342,7 @@ class ContainerListItem:
     def print_table(self, raw_units: bool, prev_container, with_changes: bool):
         # TODO: exclude usage of 'prev_container'
 
-        # TODO: add to commandline arguments
+        # TODO: move to common settings
         columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         if with_changes:  # TODO: Check
             columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
@@ -370,6 +370,7 @@ class ContainerListItem:
         tree_branch: str = dynamic_fields['_tree_branch_container']
 
         # Container: rest of the columns
+        # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
 
@@ -482,10 +483,10 @@ class ContainerListLine(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        # TODO: Implement
-        return
-        # container_indent, item_width, resources_width = self.get_tree_columns_width(with_changes=with_changes)
-        # print(SYM_LINE * (item_width + resources_width))
+        # TODO: move to common settings
+        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        print(row)
 
 
 class ContainerListHeader(ContainerListItem):
