@@ -1157,12 +1157,12 @@ def parse_args():
                         help='Match only pods/containers matching criteria. Refer below for details.')
     parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree',
                         help='Specify output format: tree, table, csv')
-    parser.add_argument('-r', metavar='FILE', dest='reference', type=str,
-                        help='Reference file or @namespace to compare with')  # TODO: Allow several references
+    parser.add_argument('-r', metavar='FILE', dest='references', type=str, action='append',
+                        help='Reference file(s) or @namespace to compare with')
     parser.add_argument('-u', dest='raw_units', action="store_true",
                         help="Don't convert CPU and Memory values in human-readable format")
     parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
-                        help='Input file or @namespace')
+                        help='Input file(s) or @namespace')
 
     # Show help if no arguments supplied
     if len(sys.argv) == 1:
@@ -1311,14 +1311,16 @@ def main():
     all_resources = KubernetesResourceSet()
     ref_resources = KubernetesResourceSet()
 
-    with_changes = args.reference is not None
-
     try:
-        for i in args.inputs:
-            all_resources.load(i)
+        for source in args.inputs:
+            all_resources.load(source=source)
+
+        with_changes = False
+        for source in args.references:
+            ref_resources.load(source=source)
+            with_changes = True
 
         if with_changes:
-            ref_resources.load(args.reference)
             all_resources.compare(ref_resources)
 
         resources = all_resources.filter(
