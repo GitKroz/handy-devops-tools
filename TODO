@@ -1,9 +1,10 @@
 kubestat.py
-* Recover tree view
+* Tree view: add header and line
+* Tree view: add color
+* Tree view: add summary
 * Delete pretty table view
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant
-* Summary to tree view
 * Tree mode must respect 'with_changes'
 * For filter - make "does NOT match regex"
 * Toggle Megabytes | Mibibytes units
