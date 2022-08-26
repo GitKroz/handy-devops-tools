@@ -539,25 +539,25 @@ class ContainerListSummary(ContainerListItem):
 
 
 class PVCListItem:
-    fields: Dict = {}
+    fields: OrderedDict = OrderedDict()  # Preserving elements order is important for exporting CSV
 
     def __init__(self):
         self.reset()
 
     def reset(self) -> None:
-        self.fields = {
-            'key': '',
-            'index': 0,  # int - global numeration of PVCs
-            'uid': '',  # str
+        self.fields = OrderedDict([
+            ('key', ''),
+            ('index', 0),  # int - global numeration of PVCs
+            ('uid', ''),  # str
 
-            'name': '',  # str - used for binding with containers
-            'storageClassName': '',  # str
+            ('name', ''),  # str - used for binding with containers
+            ('storageClassName', ''),  # str
 
-            'containerList': set(),  # List of strings - keys of containers using this PVC
-            'containerQuantity': int,  # int, containers using this PVC
+            ('containerList', set()),  # List of strings - keys of containers using this PVC
+            ('containerQuantity', int),  # int, containers using this PVC
 
-            'requests': 0  # int, bytes
-        }
+            ('requests', 0)  # int, bytes
+        ])
 
     def generate_keys(self):
         self.fields['key'] = self.fields['name']
