@@ -413,13 +413,19 @@ class ContainerListItem:
         tree_branch: str = dynamic_fields['_tree_branch_container']
 
         # Rest of the columns (container)
+        self.print_tree_row(first_column_value=tree_branch, raw_units=raw_units, colored=False)
+
+    def print_tree_row(self, first_column_value: str, raw_units: bool, colored: bool) -> None:
+        # Rest of the columns (container)
         # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
 
         # Table row (container)
         row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
-        row = row_template.format(tree_branch, tree_branch_values)
+        row = row_template.format(first_column_value, tree_branch_values)
+        if colored:
+            row = COLOR_WHITE + row + COLOR_RESET
         print(row)
 
     def print_csv(self):
@@ -446,14 +452,7 @@ class ContainerListLine(ContainerListItem):
         tree_branch = self.fields['_tree_branch']
 
         # Rest of the columns
-        # TODO: move to common settings
-        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
-
-        # Table row
-        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
-        row = row_template.format(tree_branch, tree_branch_values)
-        print(row)
+        self.print_tree_row(first_column_value=tree_branch, raw_units=raw_units, colored=True)
 
 
 class ContainerListHeader(ContainerListItem):
@@ -514,15 +513,7 @@ class ContainerListHeader(ContainerListItem):
         tree_branch_header = dynamic_fields['_tree_branch_header']
 
         # Rest of the columns
-        # TODO: move to common settings
-        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
-
-        # Table row
-        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
-        row = row_template.format(tree_branch_header, tree_branch_values)
-        row = COLOR_WHITE + row + COLOR_RESET
-        print(row)
+        self.print_tree_row(first_column_value=tree_branch_header, raw_units=raw_units, colored=True)
 
 
 class ContainerListSummary(ContainerListItem):
@@ -535,15 +526,7 @@ class ContainerListSummary(ContainerListItem):
         tree_branch_summary = dynamic_fields['_tree_branch_summary']
 
         # Rest of the columns
-        # TODO: move to common settings
-        columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
-
-        # Table row
-        row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
-        row = row_template.format(tree_branch_summary, tree_branch_values)
-        row = COLOR_WHITE + row + COLOR_RESET
-        print(row)
+        self.print_tree_row(first_column_value=tree_branch_summary, raw_units=raw_units, colored=True)
 
 
 class PVCListItem:
