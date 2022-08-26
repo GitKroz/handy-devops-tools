@@ -23,6 +23,26 @@ JSON = TypeVar('JSON', Dict, List)
 # Constants
 SYM_LINE = '-'
 
+# https://dev.to/ifenna__/adding-colors-to-bash-scripts-48g4
+COLOR_RESET = '\033[0m'
+
+COLOR_BLACK         = '\033[0;30m'
+COLOR_RED           = '\033[0;31m'
+COLOR_GREEN         = '\033[0;32m'
+COLOR_YELLOW        = '\033[0;33m'
+COLOR_BLUE          = '\033[0;34m'
+COLOR_MAGENTA       = '\033[0;35m'
+COLOR_CYAN          = '\033[0;36m'
+COLOR_LIGHT_GRAY    = '\033[0;37m'
+COLOR_GRAY          = '\033[0;90m'
+COLOR_LIGHT_REDY    = '\033[0;91m'
+COLOR_LIGHT_GREEN   = '\033[0;92m'
+COLOR_LIGHT_YELLOW  = '\033[0;93m'
+COLOR_LIGHT_BLUEOW  = '\033[0;94m'
+COLOR_LIGHT_MAGENTA = '\033[0;95m'
+COLOR_LIGHT_CYANNTA = '\033[0;96m'
+COLOR_WHITE         = '\033[0;97m'
+
 # Global variables
 logger: Optional[logging.Logger] = None  # Will be filled in setup_logging()
 args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
@@ -364,6 +384,7 @@ class ContainerListItem:
             # Pod: table row
             row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
             row = row_template.format(tree_branch)
+            row = COLOR_WHITE + row + COLOR_RESET
             print(row)
 
         # Container: first column

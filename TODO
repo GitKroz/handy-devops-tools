@@ -1,5 +1,4 @@
 kubestat.py
-* Tree view: add color
 * Tree view: add summary
 * Delete pretty table view
 * Double-check comparison especially with multiple input files
