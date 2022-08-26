@@ -616,7 +616,7 @@ class KubernetesResourceSet:
                     container_local_index = container_local_index + 1
             container.fields['localIndex'] = container_local_index + 1
 
-            container.fields['index'] = container_index + 1  # TODO: add field
+            container.fields['index'] = container_index + 1
 
             container_index = container_index + 1
 
@@ -661,7 +661,7 @@ class KubernetesResourceSet:
     def filter(self, criteria: ContainerListItem):
         r = KubernetesResourceSet()
 
-        r.pvcs = self.pvcs  # TODO: Think if fileter is to be applied here. May be not.
+        r.pvcs = self.pvcs  # TODO: Think if filter is to be applied here. May be not.
 
         for container in self.containers:
             matches = True
@@ -990,7 +990,6 @@ class KubernetesResourceSet:
 
         self.renew_keys()
         self.renew_relations()
-        # TODO: link pvc and containers
 
     def load_pod(self, pod_desc: JSON, context: Dict) -> None:
         logger.debug("Parsing pod {}".format(context))
