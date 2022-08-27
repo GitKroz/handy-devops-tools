@@ -625,6 +625,8 @@ class ContainerListSummary(ContainerListItem):
         # Print row
         # TODO: move to common settings
         columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        if with_changes:
+            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
 
         print(row)
@@ -952,7 +954,7 @@ class KubernetesResourceSet:
         ContainerListLine().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
 
         for summary_item in summary:
-            summary_item.print_tree(raw_units, prev_container, with_changes)
+            summary_item.print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
 
     def print_csv(self):
         ContainerListHeader().print_csv()
