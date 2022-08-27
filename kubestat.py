@@ -120,6 +120,7 @@ class ContainerListItem:
             ("PVCList", set()),  # List of strings
             ("PVCQuantity", 0),  # int
             ("PVCRequests", 0),  # int, bytes
+            ("PVCList_not_found", set()),  # List of strings
 
             ("change", "Unchanged"),  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
             ("changedFields", set()),  # If change == 'Modified" - list of fields modified
@@ -134,8 +135,9 @@ class ContainerListItem:
             ("ref_PVCList", set()),  # List of strings
             ("ref_PVCQuantity", 0),  # int
             ("ref_PVCRequests", 0),  # int, bytes
-            # Special dynamically generated fields
+            ("ref_PVCList_not_found", set()),  # List of strings
 
+            # Special dynamically generated fields
             ("_tree_branch", ''),  # str
             ("_tree_branch_pod", ''),  # str
             ("_tree_branch_container", ''),  # str
@@ -172,6 +174,7 @@ class ContainerListItem:
             "PVCList": 0,
             "PVCQuantity": 0,
             "PVCRequests": 0,
+            "PVCList_not_found": 0,
 
             "change": 0,
             "changedFields": 0,
@@ -186,6 +189,7 @@ class ContainerListItem:
             "ref_PVCList": 0,
             "ref_PVCQuantity": 0,
             "ref_PVCRequests": 0,
+            "ref_PVCList_not_found": 0,
 
             # Special dynamically generated fields
             '_tree_branch': 0,  # Combined
@@ -222,6 +226,7 @@ class ContainerListItem:
             "PVCList": '<',
             "PVCQuantity": '>',
             "PVCRequests": '>',
+            "PVCList_not_found": '<',
 
             "change": '<',
             "changedFields": '<',
@@ -236,6 +241,7 @@ class ContainerListItem:
             "ref_PVCList": '<',
             "ref_PVCQuantity": '>',
             "ref_PVCRequests": '>',
+            "ref_PVCList_not_found": '<',
 
             # Special dynamically generated fields
             '_tree_branch': '<',  # Combined
@@ -549,6 +555,7 @@ class ContainerListHeader(ContainerListItem):
             ("PVCList", "PVC List"),
             ("PVCQuantity", "PVC_Q"),
             ("PVCRequests", "PVC_R"),
+            ("PVCList_not_found", "PVC List (not found)"),
 
             ("change", "Change"),
             ("changedFields", "Changed Fields"),
@@ -563,6 +570,7 @@ class ContainerListHeader(ContainerListItem):
             ("ref_PVCList", "rPVC List"),
             ("ref_PVCQuantity", "rPVC_Q"),
             ("ref_PVCRequests", "rPVC_R"),
+            ("ref_PVCList_not_found", "rPVC List (not found)"),
 
             ("_tree_branch", "Resource")  # Note: this will be moved to _tree_branch_header and added with indent
         ])
@@ -736,6 +744,7 @@ class KubernetesResourceSet:
 
             container.fields['PVCQuantity'] = 0
             container.fields['PVCRequests'] = 0
+            container.fields['PVCList_not_found'] = set()
 
             for pvc_name in container.fields['PVCList']:
                 pvc = self.get_pvc_by_name(name=pvc_name, allow_deleted=False, allow_new=True)
@@ -747,9 +756,10 @@ class KubernetesResourceSet:
                     pvc.fields['containerList'].add(container.fields['key'])
                     pvc.fields['containerQuantity'] = len(pvc.fields['containerList'])
                 else:
-                    logging.warning("Container '{}' refers to PVC '{}' that does not exist".format(
+                    logging.debug("Container '{}' refers to PVC '{}' that does not exist".format(
                         container.fields['key'], pvc_name
                     ))
+                    container.fields['PVCList_not_found'].add(pvc_name)
 
     def sort(self) -> None:
         self.containers = sorted(self.containers, key=lambda c: c.fields['key'])
@@ -811,7 +821,9 @@ class KubernetesResourceSet:
             r.fields["ref_ephStorageLimits"] = r.fields["ref_ephStorageLimits"] + container.fields["ref_ephStorageLimits"]
 
             r.fields["PVCList"] = r.fields["PVCList"].union(container.fields["PVCList"])
+            r.fields["PVCList_not_found"] = r.fields["PVCList_not_found"].union(container.fields["PVCList_not_found"])
             r.fields["ref_PVCList"] = r.fields["ref_PVCList"].union(container.fields["ref_PVCList"])
+            r.fields["ref_PVCList_not_found"] = r.fields["ref_PVCList_not_found"].union(container.fields["ref_PVCList_not_found"])
 
             prev_container = container
 
@@ -1217,7 +1229,7 @@ class KubernetesResourceSet:
                 container.fields['change'] = 'New Container'
                 container.fields['changedFields'] = set()
             else:
-                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests']:
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests', 'PVCList_not_found']:
                     container.fields['ref_' + res_field] = ref_container.fields[res_field]
                 container.check_if_modified()
 
@@ -1234,7 +1246,7 @@ class KubernetesResourceSet:
                 deleted_container.fields['changedFields'] = set()
                 deleted_container.fields['podIndex'] = 0
 
-                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests']:
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests', 'PVCList_not_found']:
                     deleted_container.fields['ref_' + res_field] = deleted_container.fields[res_field]
                     if type(deleted_container.fields[res_field]) is int:
                         deleted_container.fields[res_field] = 0

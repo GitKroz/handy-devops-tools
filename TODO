@@ -1,13 +1,12 @@
 kubestat.py
-* Bug: Warnings about containers referring to non-existing PVCs
-* Tree view: add reference values
+* Add context variable where relevant
 * Add flag to disable colors
 * For filter - make "does NOT match regex"
-* Double-check comparison especially with multiple input files
-* Add context variable where relevant
 * Tree mode must respect 'with_changes'
 * For per-container parsing: make configurable (may be) or simplify
 * Toggle Megabytes | Mibibytes units
-* Deleted Pod use case
 * Make generic mechanism of parsing resources: CPU, memory, ephemeral-storage, storage
 * Resource management: if requests/limits are not specified, set some flag when calculating totals (calculation is not precise)
+* Validation: as summary show if there are any unresolved PVCs
+* Validation: as summary show if there are any not used PVCs
+* Help: show example with several reference files
