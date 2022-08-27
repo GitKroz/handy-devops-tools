@@ -1172,6 +1172,29 @@ class KubernetesResourceSet:
 
         self.sort()
 
+        # Containers -> Pods
+        pods_change = dict()
+        change_mix = 'mix'  # Constant
+        for c in self.containers:
+            pod_key = c.fields['podKey']
+            change = c.fields['change']
+
+            if pod_key in pods_change:
+                if change != pods_change[pod_key]:
+                    pods_change[pod_key] = change_mix
+            else:
+                pods_change[pod_key] = change
+
+        # TODO: validate assumption: pod cannot exist without containers
+        for c in self.containers:
+            pod_key = c.fields['podKey']
+
+            if pods_change[pod_key] != change_mix:
+                if c.fields['change'] == 'Deleted Container':
+                    c.fields['change'] = 'Deleted Pod'
+                if c.fields['change'] == 'New Container':
+                    c.fields['change'] = 'New Pod'
+
 
 ################################################################################
 # Functions
