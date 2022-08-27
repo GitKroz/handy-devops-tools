@@ -103,6 +103,7 @@ class ContainerListItem:
             ("PVCRequests", 0),  # int, bytes
 
             ("change", "Unchanged"),  # str: Unchanged, Deleted Pod, Deleted Container, New Pod, New Container, Modified
+            ("changedFields", set()),  # If change == 'Modified" - list of fields modified
 
             ("ref_CPURequests", 0),  # int, milliCore
             ("ref_CPULimits", 0),  # int, milliCore
@@ -154,6 +155,7 @@ class ContainerListItem:
             "PVCRequests": 0,
 
             "change": 0,
+            "changedFields": 0,
 
             "ref_CPURequests": 0,
             "ref_CPULimits": 0,
@@ -203,6 +205,7 @@ class ContainerListItem:
             "PVCRequests": '>',
 
             "change": '<',
+            "changedFields": '<',
 
             "ref_CPURequests": '>',
             "ref_CPULimits": '>',
@@ -257,6 +260,7 @@ class ContainerListItem:
         for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCRequests']:
             if self.fields[res_field] != self.fields['ref_' + res_field]:
                 self.fields['change'] = 'Modified'
+                self.fields['changedFields'].add(res_field)
 
     def get_formatted_fields(self, raw_units: bool) -> Dict:
         formatted_fields = copy.deepcopy(self.fields)
@@ -306,12 +310,12 @@ class ContainerListItem:
 
         # Pod
         columns = ['podIndex', 'workloadType', 'podName']
-        value = self.fields_to_table(columns=columns, raw_units=raw_units)
+        value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False)
         dynamic_fields['_tree_branch_pod'] = (' ' * pod_indent_width) + value
 
         # Container
         columns = ['type', 'name']
-        value = self.fields_to_table(columns=columns, raw_units=raw_units)
+        value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
         # Summary - relevant only for summary items
@@ -372,22 +376,54 @@ class ContainerListItem:
 
         return r
 
-    def fields_to_table(self, columns: List, raw_units: bool) -> str:
-        template = ""
+    def fields_to_table(self, columns: List, raw_units: bool, highlight_changes: bool) -> str:
+        template: str = ""
         for column in columns:
-            template = template + '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}' + self.sym_column_separator
+            field_template = '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}'
+
+            if highlight_changes:
+                if column in self.fields['changedFields']:
+                    field_template = COLOR_LIGHT_YELLOW + field_template + COLOR_RESET
+                if column == 'change' and self.fields['change'] == 'Modified':
+                    field_template = COLOR_LIGHT_YELLOW + field_template + COLOR_RESET
+
+            template = template + field_template + self.sym_column_separator
 
         formatted_fields = self.get_formatted_fields(raw_units=raw_units)
 
         return template.format(**formatted_fields)
 
+    # Applicable for both table and tree
+    def highlight_row(self, row: str, highlight_changes: bool) -> str:
+        colored_row: str = row
+
+        if highlight_changes:
+            # TODO: move to common settinga
+            color_map = {
+                'Unchanged': '',
+                'Deleted Pod': COLOR_RED,
+                'Deleted Container': COLOR_RED,
+                'New Pod': COLOR_GREEN,
+                'New Container': COLOR_GREEN,
+                'Modified': ''
+            }
+
+            colored_row = color_map[self.fields['change']] + row + COLOR_RESET
+
+        return colored_row
+
     def print_table(self, raw_units: bool, with_changes: bool):
+        highlight_changes: bool = True
+        if self.is_decoration():
+            highlight_changes = False
+
         # TODO: move to common settings
         columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
         if with_changes:  # TODO: Check
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
+            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
 
-        row = self.fields_to_table(columns=columns, raw_units=raw_units)
+        row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes)
+        row = self.highlight_row(row, highlight_changes=highlight_changes)
 
         print(row)
 
@@ -417,7 +453,7 @@ class ContainerListItem:
         # Rest of the columns (container)
         # TODO: move to common settings
         columns = ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units)
+        tree_branch_values: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True)
 
         # Table row (container)
         row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}' + self.sym_column_separator + '{}'
@@ -490,6 +526,7 @@ class ContainerListHeader(ContainerListItem):
             ("PVCRequests", "PVC_R"),
 
             ("change", "Change"),
+            ("changedFields", "Changed Fields"),
 
             ("ref_CPURequests", "rCPU_R"),
             ("ref_CPULimits", "rCPU_L"),
@@ -746,6 +783,7 @@ class KubernetesResourceSet:
         r.fields["name"] = "{} containers{}".format(container_quantity, container_name_suffix)
 
         r.fields["change"] = "Unchanged"
+        r.fields["changedFields"] = set()
         if with_changes:
             r.check_if_modified()
 
@@ -1066,6 +1104,7 @@ class KubernetesResourceSet:
 
             if ref_container is None:
                 container.fields['change'] = 'New Container'
+                container.fields['changedFields'] = set()
             else:
                 for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits']:
                     container.fields['ref_' + res_field] = ref_container.fields[res_field]
@@ -1081,6 +1120,7 @@ class KubernetesResourceSet:
                 deleted_container = self.containers[-1]
 
                 deleted_container.fields['change'] = 'Deleted Container'
+                deleted_container.fields['changedFields'] = set()
                 deleted_container.fields['podIndex'] = 0
 
                 deleted_container.fields["ref_CPURequests"] = deleted_container.fields["CPURequests"]
