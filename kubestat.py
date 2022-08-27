@@ -1007,11 +1007,7 @@ class KubernetesResourceSet:
                 context
             ))
 
-        if 'app' in pod_desc["metadata"]["labels"]:
-            container.fields["appName"] = pod_desc["metadata"]["labels"]["app"]
-        else:
-            container.fields["appName"] = pod_desc["metadata"]["labels"]["app.kubernetes.io/name"]
-
+        container.fields["appName"] = pod_desc["metadata"]["ownerReferences"][0]["name"]
         container.fields["workloadType"] = pod_desc["metadata"]["ownerReferences"][0]["kind"]
 
         # Storage-specific logic (a part of)
