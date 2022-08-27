@@ -26,6 +26,7 @@ SYM_LINE = '-'
 # https://dev.to/ifenna__/adding-colors-to-bash-scripts-48g4
 COLOR_RESET = '\033[0m'
 
+COLOR_DEFAULT       = '\033[0m'
 COLOR_BLACK         = '\033[0;30m'
 COLOR_RED           = '\033[0;31m'
 COLOR_GREEN         = '\033[0;32m'
@@ -354,69 +355,38 @@ class ContainerListItem:
         # Result
         return dynamic_fields
 
-    def decorate_changes(self, template: str, is_pod_only: bool) -> str:
-        r = template
-
-        if self.is_decoration():
-            pass
-        elif self.fields['change'] == "Unchanged":
-            if is_pod_only:
-                r = '\033[1;37m' + template + '\033[0m'
-            else:
-                pass
-        elif self.fields['change'] == "Deleted Pod":
-            if is_pod_only:
-                r = '\033[1;31m' + template + '\033[0m'
-            else:
-                r = '\033[0;31m' + template + '\033[0m'
-        elif self.fields['change'] == "Deleted Container":
-            if is_pod_only:
-                r = '\033[1;37m' + template + '\033[0m'
-            else:
-                r = '\033[0;31m' + template + '\033[0m'
-        elif self.fields['change'] == "New Pod":
-            if is_pod_only:
-                r = '\033[1;32m' + template + '\033[0m'
-            else:
-                r = '\033[0;32m' + template + '\033[0m'
-        elif self.fields['change'] == "New Container":
-            if is_pod_only:
-                r = '\033[1;37m' + template + '\033[0m'
-            else:
-                r = '\033[0;32m' + template + '\033[0m'
-        elif self.fields['change'] == "Modified":
-            if is_pod_only:
-                r = '\033[1;37m' + template + '\033[0m'
-            else:
-                r = '\033[0;93m' + template + '\033[0m'
-        else:
-            raise RuntimeError("Invalid change for pod '{}': {}".format(self.fields["podName"], self.fields["change"]))
-
-        return r
-
     def fields_to_table(self, columns: List, raw_units: bool, highlight_changes: bool, make_bold: bool) -> str:
         template: str = ""
+
+        # TODO: move to common settings
+        color_map = {
+            'Unchanged': COLOR_DEFAULT,
+            'Deleted Pod': COLOR_RED,
+            'Deleted Container': COLOR_RED,
+            'New Pod': COLOR_GREEN,
+            'New Container': COLOR_GREEN,
+            'Modified': COLOR_LIGHT_YELLOW
+        }
+        if make_bold:
+            color_map = {
+                'Unchanged': COLOR_BOLD_DEFAULT,
+                'Deleted Pod': COLOR_BOLD_RED,
+                'Deleted Container': COLOR_BOLD_RED,
+                'New Pod': COLOR_BOLD_GREEN,
+                'New Container': COLOR_BOLD_GREEN,
+                'Modified': COLOR_BOLD_LIGHT_YELLOW
+            }
 
         for column in columns:
             field_template = '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}'
 
-            already_colored = False
             if highlight_changes:
-                if column in self.fields['changedFields']:
-                    if make_bold:
-                        field_template = COLOR_BOLD_LIGHT_YELLOW + field_template + COLOR_RESET
-                    else:
-                        field_template = COLOR_LIGHT_YELLOW + field_template + COLOR_RESET
-                    already_colored = True
-
-                if column == 'change' and self.fields['change'] == 'Modified':
-                    if make_bold:
-                        field_template = COLOR_BOLD_LIGHT_YELLOW + field_template + COLOR_RESET
-                    else:
-                        field_template = COLOR_LIGHT_YELLOW + field_template + COLOR_RESET
-                    already_colored = True
-
-            if not already_colored:
+                if self.fields['change'] == 'Modified':
+                    if column in self.fields['changedFields'] or column == 'change':
+                        field_template = color_map['Modified'] + field_template + COLOR_RESET
+                else:
+                    field_template = color_map[self.fields['change']] + field_template + COLOR_RESET
+            else:
                 if make_bold:
                     field_template = COLOR_BOLD_DEFAULT + field_template + COLOR_RESET
                 else:
