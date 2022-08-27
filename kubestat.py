@@ -626,14 +626,31 @@ class PVCListItem:
             ('containerList', set()),  # List of strings - keys of containers using this PVC
             ('containerQuantity', int),  # int, containers using this PVC
 
-            ('requests', 0)  # int, bytes
+            ('requests', 0),  # int, bytes
+
+            ("change", "Unchanged"),  # str: Unchanged, Deleted, New, Modified
+            ("changedFields", set()),  # If change == 'Modified" - list of fields modified
+
+            ('ref_requests', 0),  # int, bytes
         ])
 
-    def generate_keys(self):
+    def generate_keys(self) -> None:
         self.fields['key'] = self.fields['name']
 
     def is_used(self) -> bool:
         return len(self.fields['containerList']) != 0
+
+    def is_deleted(self) -> bool:
+        return self.fields['change'] == 'Deleted'
+
+    def is_new(self) -> bool:
+        return self.fields['change'] == 'New'
+
+    def check_if_modified(self):
+        for res_field in ['requests']:
+            if self.fields[res_field] != self.fields['ref_' + res_field]:
+                self.fields['change'] = 'Modified'
+                self.fields['changedFields'].add(res_field)
 
 
 class KubernetesResourceSet:
@@ -700,21 +717,28 @@ class KubernetesResourceSet:
             pvc_index = pvc_index + 1
             pvc.generate_keys()
 
+    # Note: not touching deleted entities
     def renew_relations(self) -> None:
         container: ContainerListItem
         pvc: PVCListItem
 
         # Managing PVCs
         for pvc in self.pvcs:
+            if pvc.is_deleted():
+                continue
+
             pvc.fields['containerList'] = set()
             pvc.fields['containerQuantity'] = 0
 
         for container in self.containers:
+            if container.is_deleted():
+                continue
+
             container.fields['PVCQuantity'] = 0
             container.fields['PVCRequests'] = 0
 
             for pvc_name in container.fields['PVCList']:
-                pvc = self.get_pvc_by_name(name=pvc_name)
+                pvc = self.get_pvc_by_name(name=pvc_name, allow_deleted=False, allow_new=True)
 
                 if pvc is not None:
                     container.fields['PVCQuantity'] = container.fields['PVCQuantity'] + 1
@@ -722,6 +746,10 @@ class KubernetesResourceSet:
 
                     pvc.fields['containerList'].add(container.fields['key'])
                     pvc.fields['containerQuantity'] = len(pvc.fields['containerList'])
+                else:
+                    logging.warning("Container '{}' refers to PVC '{}' that does not exist".format(
+                        container.fields['key'], pvc_name
+                    ))
 
     def sort(self) -> None:
         self.containers = sorted(self.containers, key=lambda c: c.fields['key'])
@@ -793,12 +821,12 @@ class KubernetesResourceSet:
 
         # Sum of all USED PVC storage sizes
         for pvc_name in r.fields['PVCList']:
-            pvc = self.get_pvc_by_name(pvc_name)
+            pvc = self.get_pvc_by_name(pvc_name, allow_deleted=False, allow_new=True)
             if pvc is not None:
                 r.fields['PVCRequests'] = r.fields['PVCRequests'] + pvc.fields['requests']
 
         for pvc_name in r.fields['ref_PVCList']:
-            pvc = self.get_pvc_by_name(pvc_name)
+            pvc = self.get_pvc_by_name(pvc_name, allow_deleted=True, allow_new=False)
             if pvc is not None:
                 r.fields['ref_PVCRequests'] = r.fields['ref_PVCRequests'] + pvc.fields['ref_requests']
 
@@ -1113,16 +1141,27 @@ class KubernetesResourceSet:
         pvc.fields['requests'] = res_mem_str_to_bytes(pvc_desc['spec']['resources']['requests']['storage'])
 
     # Get FIRST container by key
-    def get_container_by_key(self, key) -> Union[ContainerListItem, None]:
+    def get_container_by_key(self, key: str) -> Union[ContainerListItem, None]:
         for container in self.containers:
             if container.fields['key'] == key:
                 return container
 
         return None
 
-    def get_pvc_by_name(self, name: str) -> Union[PVCListItem, None]:
+    def get_pvc_by_key(self, key: str) -> Union[PVCListItem, None]:
+        for pvc in self.pvcs:
+            if pvc.fields['key'] == key:
+                return pvc
+
+        return None
+
+    def get_pvc_by_name(self, name: str, allow_deleted: bool, allow_new: bool) -> Union[PVCListItem, None]:
         for pvc in self.pvcs:
             if pvc.fields['name'] == name:
+                if pvc.is_deleted() and not allow_deleted:
+                    continue
+                if pvc.is_new() and not allow_new:
+                    continue
                 return pvc
 
         return None
@@ -1131,6 +1170,45 @@ class KubernetesResourceSet:
         return len(self.pvcs)
 
     def compare(self, ref_res):
+        # TODO: Clear previous comparison
+
+        self.compare_pvcs(ref_res=ref_res)
+        self.compare_containers(ref_res=ref_res)
+
+        self.sort()
+
+    def compare_pvcs(self, ref_res):
+        # Added and modified
+        for pvc in self.pvcs:
+            ref_pvc = ref_res.get_pvc_by_key(pvc.fields['key'])
+
+            if ref_pvc is None:
+                pvc.fields['change'] = 'New'
+                pvc.fields['changedFields'] = set()
+            else:
+                for res_field in ['requests']:
+                    pvc.fields['ref_' + res_field] = ref_pvc.fields[res_field]
+                pvc.check_if_modified()
+
+        # Deleted
+        for ref_pvc in ref_res.pvcs:
+            pvc = self.get_pvc_by_key(ref_pvc.fields['key'])
+
+            if pvc is None:
+                self.pvcs.append(ref_pvc)
+
+                deleted_pvc = self.pvcs[-1]
+
+                deleted_pvc.fields['change'] = 'Deleted'
+                deleted_pvc.fields['changedFields'] = set()
+                deleted_pvc.fields['index'] = 0
+                deleted_pvc.fields['uid'] = ''
+
+                deleted_pvc.fields["ref_requests"] = deleted_pvc.fields["requests"]
+
+                deleted_pvc.fields["requests"] = 0
+
+    def compare_containers(self, ref_res):
         # Added and modified
         for container in self.containers:
             ref_container = ref_res.get_container_by_key(container.fields['key'])
@@ -1139,7 +1217,7 @@ class KubernetesResourceSet:
                 container.fields['change'] = 'New Container'
                 container.fields['changedFields'] = set()
             else:
-                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits']:
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests']:
                     container.fields['ref_' + res_field] = ref_container.fields[res_field]
                 container.check_if_modified()
 
@@ -1156,21 +1234,19 @@ class KubernetesResourceSet:
                 deleted_container.fields['changedFields'] = set()
                 deleted_container.fields['podIndex'] = 0
 
-                deleted_container.fields["ref_CPURequests"] = deleted_container.fields["CPURequests"]
-                deleted_container.fields["ref_CPULimits"] = deleted_container.fields["CPULimits"]
-                deleted_container.fields["ref_memoryRequests"] = deleted_container.fields["memoryRequests"]
-                deleted_container.fields["ref_memoryLimits"] = deleted_container.fields["memoryLimits"]
-                deleted_container.fields["ref_ephStorageRequests"] = deleted_container.fields["ephStorageRequests"]
-                deleted_container.fields["ref_ephStorageLimits"] = deleted_container.fields["ephStorageLimits"]
-
-                deleted_container.fields["CPURequests"] = 0
-                deleted_container.fields["CPULimits"] = 0
-                deleted_container.fields["memoryRequests"] = 0
-                deleted_container.fields["memoryLimits"] = 0
-                deleted_container.fields["ephStorageRequests"] = 0
-                deleted_container.fields["ephStorageLimits"] = 0
-
-        self.sort()
+                for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCQuantity', 'PVCRequests']:
+                    deleted_container.fields['ref_' + res_field] = deleted_container.fields[res_field]
+                    if type(deleted_container.fields[res_field]) is int:
+                        deleted_container.fields[res_field] = 0
+                    elif type(deleted_container.fields[res_field]) is str:
+                        deleted_container.fields[res_field] = ''
+                    elif type(deleted_container.fields[res_field]) is set:
+                        deleted_container.fields[res_field] = set()
+                    else:
+                        raise RuntimeError("Invalid type of reference field {}: {}".format(
+                            res_field,
+                            type(deleted_container.fields[res_field])
+                        ))
 
         # Containers -> Pods
         pods_change = dict()

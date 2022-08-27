@@ -1,9 +1,11 @@
 kubestat.py
-* Bug: in reference container, PVCs are not filled. Can be seen during comparison.
+* Bug: Warnings about containers referring to non-existing PVCs
+* Tree view: add reference values
+* Add flag to disable colors
+* For filter - make "does NOT match regex"
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant
 * Tree mode must respect 'with_changes'
-* For filter - make "does NOT match regex"
 * For per-container parsing: make configurable (may be) or simplify
 * Toggle Megabytes | Mibibytes units
 * Deleted Pod use case
