@@ -387,8 +387,13 @@ class ContainerListItem:
             field_template = '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}'
 
             if highlight_changes:
+                # Needed to match both main fields and ref_* fields
+                column_changed = column
+                if column[:4] == 'ref_':
+                    column_changed = column[4:]
+
                 if self.fields['change'] == 'Modified':
-                    if column in self.fields['changedFields'] or column == 'change':
+                    if column_changed in self.fields['changedFields'] or column == 'change':
                         field_template = color_map['Modified'] + field_template + COLOR_RESET
                     else:
                         field_template = color_map['Unchanged'] + field_template + COLOR_RESET
