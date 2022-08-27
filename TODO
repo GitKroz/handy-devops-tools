@@ -1,6 +1,5 @@
 kubestat.py
-# Comparison: add colors for tree view
-# Comparison: unify colors for decorations and for diff
+* Comparison: detect adding/deleting pods, not only containers
 * Bug: in reference container, PVCs are not filled. Can be seen during comparison.
 * Double-check comparison especially with multiple input files
 * Add context variable where relevant

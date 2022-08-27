@@ -36,7 +36,7 @@ COLOR_MAGENTA       = '\033[0;35m'
 COLOR_CYAN          = '\033[0;36m'
 COLOR_LIGHT_GRAY    = '\033[0;37m'
 COLOR_GRAY          = '\033[0;90m'
-COLOR_LIGHT_REDY    = '\033[0;91m'
+COLOR_LIGHT_RED     = '\033[0;91m'
 COLOR_LIGHT_GREEN   = '\033[0;92m'
 COLOR_LIGHT_YELLOW  = '\033[0;93m'
 COLOR_LIGHT_BLUE    = '\033[0;94m'
@@ -384,6 +384,8 @@ class ContainerListItem:
                 if self.fields['change'] == 'Modified':
                     if column in self.fields['changedFields'] or column == 'change':
                         field_template = color_map['Modified'] + field_template + COLOR_RESET
+                    else:
+                        field_template = color_map['Unchanged'] + field_template + COLOR_RESET
                 else:
                     field_template = color_map[self.fields['change']] + field_template + COLOR_RESET
             else:
@@ -436,29 +438,48 @@ class ContainerListItem:
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
 
         if prev_container is None or not prev_container.is_same_pod(container=self):
-            # Pod: first column
-            tree_branch: str = dynamic_fields['_tree_branch_pod']
+            # Printing additional pod line
 
-            # Pod: rest of the columns
-            # None
+            # TODO: move to common settings
+            pod_color_map = {
+                'Unchanged': COLOR_WHITE,
+                'Deleted Pod': COLOR_LIGHT_RED,
+                'Deleted Container': COLOR_LIGHT_YELLOW,  # Deleted container is modified pod
+                'New Pod': COLOR_LIGHT_GREEN,
+                'New Container': COLOR_LIGHT_YELLOW,  # New container is modified pod
+                'Modified': COLOR_LIGHT_YELLOW
+            }
+
+            highlight_changes = True  # TODO: make function parameter
+
+            # First column (Pod)
+            tree_branch: str = dynamic_fields['_tree_branch_pod']
 
             # Pod: table row
             row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
+
+            if highlight_changes:
+                row_template = \
+                    pod_color_map[self.fields['change']] + \
+                    row_template + \
+                    COLOR_RESET
+            else:
+                row_template = \
+                    COLOR_WHITE + \
+                    row_template + \
+                    COLOR_RESET
+
             row = row_template.format(tree_branch)
-            row = COLOR_WHITE + row + COLOR_RESET
+
             print(row)
 
         # First column (container)
-        tree_branch: str = dynamic_fields['_tree_branch_container']
+        self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
 
-        # Rest of the columns (container)
-        self.print_tree_row(first_column_value=tree_branch, raw_units=raw_units, bold_row=False)
-
-    def print_tree_row(self, first_column_value: str, raw_units: bool, bold_row: bool) -> None:
+        # Print row
         # TODO: move to common settings
         columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        self.fields['_tree_branch'] = first_column_value  # TODO: fill this is the parent function
-        row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=bold_row)
+        row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
 
         print(row)
 
@@ -483,10 +504,14 @@ class ContainerListLine(ContainerListItem):
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         # First column
-        tree_branch = self.fields['_tree_branch']
+        # Already filled with right value
 
-        # Rest of the columns
-        self.print_tree_row(first_column_value=tree_branch, raw_units=raw_units, bold_row=True)
+        # Print row
+        # TODO: move to common settings
+        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
+
+        print(row)
 
     def print_csv(self):
         raise RuntimeError('ContainerListLine is not expected to be exported to CSV')
@@ -548,10 +573,14 @@ class ContainerListHeader(ContainerListItem):
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
-        tree_branch_header = dynamic_fields['_tree_branch_header']
+        self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
-        # Rest of the columns
-        self.print_tree_row(first_column_value=tree_branch_header, raw_units=raw_units, bold_row=True)
+        # Print row
+        # TODO: move to common settings
+        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
+
+        print(row)
 
     def print_csv(self):
         for key in self.fields.keys():
@@ -566,10 +595,14 @@ class ContainerListSummary(ContainerListItem):
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
-        tree_branch_summary = dynamic_fields['_tree_branch_summary']
+        self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
-        # Rest of the columns
-        self.print_tree_row(first_column_value=tree_branch_summary, raw_units=raw_units, bold_row=True)
+        # Print row
+        # TODO: move to common settings
+        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
+
+        print(row)
 
     def print_csv(self):
         raise RuntimeError('ContainerListSummary is not expected to be exported to CSV')
