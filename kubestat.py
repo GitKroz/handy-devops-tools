@@ -432,7 +432,7 @@ class ContainerListItem:
 
         # TODO: move to common settings
         columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
-        if with_changes:  # TODO: Check
+        if with_changes:
             columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
 
         row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
@@ -485,6 +485,9 @@ class ContainerListItem:
         # Print row
         # TODO: move to common settings
         columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        if with_changes:
+            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
 
         print(row)
@@ -515,6 +518,9 @@ class ContainerListLine(ContainerListItem):
         # Print row
         # TODO: move to common settings
         columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        if with_changes:
+            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
         print(row)
@@ -586,6 +592,9 @@ class ContainerListHeader(ContainerListItem):
         # Print row
         # TODO: move to common settings
         columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        if with_changes:
+            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
         print(row)
@@ -603,6 +612,9 @@ class ContainerListSummary(ContainerListItem):
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        if with_changes:
+            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Print row
@@ -901,7 +913,7 @@ class KubernetesResourceSet:
             self.print_table(raw_units=raw_units, with_changes=with_changes, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
-            self.print_tree(raw_units=raw_units, with_changes=True, summary=summary)
+            self.print_tree(raw_units=raw_units, with_changes=with_changes, summary=summary)
         elif output_format == "csv":
             logger.debug("Output format: csv")
             self.print_csv()

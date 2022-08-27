@@ -2,7 +2,6 @@ kubestat.py
 * Add context variable where relevant
 * Add flag to disable colors
 * For filter - make "does NOT match regex"
-* Tree mode must respect 'with_changes'
 * For per-container parsing: make configurable (may be) or simplify
 * Toggle Megabytes | Mibibytes units
 * Make generic mechanism of parsing resources: CPU, memory, ephemeral-storage, storage
