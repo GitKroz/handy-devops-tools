@@ -63,13 +63,21 @@ COLOR_BOLD_LIGHT_CYAN    = '\033[1;96m'
 COLOR_BOLD_WHITE         = '\033[1;97m'
 
 CONFIG = {
-    'table_columns': {
-        'no_diff_mode': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
-        'diff_mode':    ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+    'table_view': {
+        'columns_no_diff':   ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
     },
-    'tree_columns': {  # Make sure first field is '_tree_branch'
-        "no_diff_mode": ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
-        "diff_mode":    ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+    'tree_view': {
+        # Make sure first field is '_tree_branch'
+        'columns_no_diff':   ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_with_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields'],
+
+        'pod_branch':       ['podIndex', 'workloadType', 'podName'],
+        'container_branch': ['type', 'name'],
+
+        'header_indent': 4,
+        'pod_indent': 0,
+        'container_indent': 6,
     },
     'colors': {
         'changes': {},  # By changes
@@ -342,21 +350,23 @@ class ContainerListItem:
 
     # Special about dynamic fields: they rely on values and width of main fields
     def get_dynamic_fields(self, raw_units: bool) -> Dict:
+        global CONFIG
+
         dynamic_fields: Dict = dict()
 
         # TODO: to configurable parameters
-        pod_indent_width: int = 0
-        container_indent_width: int = 6
+        tree_branch_header_indent_width: int = CONFIG['tree_view']['header_indent']
+        pod_indent_width: int = CONFIG['tree_view']['pod_indent']
+        container_indent_width: int = CONFIG['tree_view']['container_indent']
         summary_indent_width: int = 4
-        tree_branch_header_indent_width: int = 4
 
         # Pod
-        columns = ['podIndex', 'workloadType', 'podName']
+        columns = CONFIG['tree_view']['pod_branch']
         value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_pod'] = (' ' * pod_indent_width) + value
 
         # Container
-        columns = ['type', 'name']
+        columns = CONFIG['tree_view']['container_branch']
         value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
@@ -454,9 +464,9 @@ class ContainerListItem:
         if self.is_decoration():
             highlight_changes = False
 
-        columns = CONFIG['table_columns']['no_diff_mode']
+        columns = CONFIG['table_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['table_columns']['diff_mode']
+            columns = CONFIG['table_view']['columns_with_diff']
 
         row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
         row = self.highlight_row(row, highlight_changes=highlight_changes)
@@ -508,9 +518,9 @@ class ContainerListItem:
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
 
         # Print row
-        columns = CONFIG['tree_columns']['no_diff_mode']
+        columns = CONFIG['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_columns']['diff_mode']
+            columns = CONFIG['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
 
@@ -542,9 +552,9 @@ class ContainerListLine(ContainerListItem):
         # Already filled with right value
 
         # Print row
-        columns = CONFIG['tree_columns']['no_diff_mode']
+        columns = CONFIG['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_columns']['diff_mode']
+            columns = CONFIG['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -617,9 +627,9 @@ class ContainerListHeader(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
         # Print row
-        columns = CONFIG['tree_columns']['no_diff_mode']
+        columns = CONFIG['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_columns']['diff_mode']
+            columns = CONFIG['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -644,9 +654,9 @@ class ContainerListSummary(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Print row
-        columns = CONFIG['tree_columns']['no_diff_mode']
+        columns = CONFIG['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_columns']['diff_mode']
+            columns = CONFIG['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
 
