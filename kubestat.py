@@ -446,25 +446,6 @@ class ContainerListItem:
 
         return template.format(**formatted_fields)
 
-    # Applicable for both table and tree
-    def highlight_row(self, row: str, highlight_changes: bool) -> str:
-        colored_row: str = row
-
-        if highlight_changes:
-            # TODO: move to common settings
-            color_map = {
-                'Unchanged': '',
-                'Deleted Pod': COLOR_RED,
-                'Deleted Container': COLOR_RED,
-                'New Pod': COLOR_GREEN,
-                'New Container': COLOR_GREEN,
-                'Modified': ''
-            }
-
-            colored_row = color_map[self.fields['change']] + row + COLOR_RESET
-
-        return colored_row
-
     def print_table(self, raw_units: bool, with_changes: bool):
         global CONFIG
 
@@ -477,7 +458,6 @@ class ContainerListItem:
             columns = CONFIG['table_view']['columns_with_diff']
 
         row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
-        row = self.highlight_row(row, highlight_changes=highlight_changes)
 
         print(row)
 
