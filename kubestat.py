@@ -64,12 +64,12 @@ COLOR_BOLD_WHITE         = '\033[1;97m'
 
 CONFIG = {
     'table_columns': {
-        'no_diff_mode':   ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
-        'diff_mode': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+        'no_diff_mode': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'diff_mode':    ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
     },
-    'tree_columns': {
-        "no_diff_mode": [],
-        "with_diff_mode": []
+    'tree_columns': {  # Make sure first field is '_tree_branch'
+        "no_diff_mode": ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        "diff_mode":    ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
     },
     'colors': {
         'changes': {},  # By changes
@@ -464,6 +464,8 @@ class ContainerListItem:
         print(row)
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        global CONFIG
+
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
 
         if prev_container is None or not prev_container.is_same_pod(container=self):
@@ -506,10 +508,9 @@ class ContainerListItem:
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
 
         # Print row
-        # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        columns = CONFIG['tree_columns']['no_diff_mode']
         if with_changes:
-            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+            columns = CONFIG['tree_columns']['diff_mode']
 
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
 
@@ -535,14 +536,15 @@ class ContainerListLine(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        global CONFIG
+
         # First column
         # Already filled with right value
 
         # Print row
-        # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        columns = CONFIG['tree_columns']['no_diff_mode']
         if with_changes:
-            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+            columns = CONFIG['tree_columns']['diff_mode']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -608,15 +610,16 @@ class ContainerListHeader(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+        global CONFIG
+
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
         # Print row
-        # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        columns = CONFIG['tree_columns']['no_diff_mode']
         if with_changes:
-            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+            columns = CONFIG['tree_columns']['diff_mode']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -641,10 +644,10 @@ class ContainerListSummary(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Print row
-        # TODO: move to common settings
-        columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        columns = CONFIG['tree_columns']['no_diff_mode']
         if with_changes:
-            columns = ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+            columns = CONFIG['tree_columns']['diff_mode']
+
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
 
         print(row)
