@@ -375,7 +375,6 @@ class ContainerListItem:
 
         dynamic_fields: Dict = dict()
 
-        # TODO: to configurable parameters
         tree_branch_header_indent_width: int = CONFIG['tree_view']['header_indent']
         pod_indent_width: int = CONFIG['tree_view']['pod_indent']
         container_indent_width: int = CONFIG['tree_view']['container_indent']
@@ -471,24 +470,16 @@ class ContainerListItem:
 
             pod_color_map = CONFIG['colors']['changes_tree_pod_branch']
 
-            highlight_changes = True  # TODO: make function parameter
-
             # First column (Pod)
             tree_branch: str = dynamic_fields['_tree_branch_pod']
 
             # Pod: table row
             row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
 
-            if highlight_changes:
-                row_template = \
-                    pod_color_map[self.fields['change']] + \
-                    row_template + \
-                    COLOR_RESET
-            else:
-                row_template = \
-                    COLOR_WHITE + \
-                    row_template + \
-                    COLOR_RESET
+            row_template = \
+                pod_color_map[self.fields['change']] + \
+                row_template + \
+                COLOR_RESET
 
             row = row_template.format(tree_branch)
 
