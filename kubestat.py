@@ -1474,34 +1474,34 @@ def res_mem_str_to_bytes(value: str) -> int:
 
     # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes
     if value[-1:] == "k":
-        r = int(value[:-1]) * 1024
+        r = int(value[:-1]) * 1000
     elif value[-1:] == "M":
-        r = int(value[:-1]) * 1024 * 1024
+        r = int(value[:-1]) * 1000 * 1000
     elif value[-1:] == "G":
-        r = int(value[:-1]) * 1024 * 1024 * 1024
+        r = int(value[:-1]) * 1000 * 1000 * 1000
     elif value[-1:] == "T":
-        r = int(value[:-1]) * 1024 * 1024 * 1024 * 1024
+        r = int(value[:-1]) * 1000 * 1000 * 1000 * 1000
     elif value[-1:] == "P":
-        r = int(value[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024
+        r = int(value[:-1]) * 1000 * 1000 * 1000 * 1000 * 1000
     elif value[-1:] == "E":
-        r = int(value[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024
+        r = int(value[:-1]) * 1000 * 1000 * 1000 * 1000 * 1000 * 1000
 
     # Special case
     elif value[-1:] == "m":
         r = int(round(int(value[:-1]) / 1000, 0))
 
     elif value[-2:] == "ki":
-        r = int(value[:-2]) * 1000
+        r = int(value[:-2]) * 1024
     elif value[-2:] == "Mi":
-        r = int(value[:-2]) * 1000 * 1000
+        r = int(value[:-2]) * 1024 * 1024
     elif value[-2:] == "Gi":
-        r = int(value[:-2]) * 1000 * 1000 * 1000
+        r = int(value[:-2]) * 1024 * 1024 * 1024
     elif value[-2:] == "Ti":
-        r = int(value[:-2]) * 1000 * 1000 * 1000 * 1000
+        r = int(value[:-2]) * 1024 * 1024 * 1024 * 1024
     elif value[-2:] == "Pi":
-        r = int(value[:-2]) * 1000 * 1000 * 1000 * 1000 * 1000
+        r = int(value[:-2]) * 1024 * 1024 * 1024 * 1024 * 1024
     elif value[-2:] == "Ei":
-        r = int(value[:-2]) * 1000 * 1000 * 1000 * 1000 * 1000 * 1000
+        r = int(value[:-2]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024
 
     else:
         r = int(value)
