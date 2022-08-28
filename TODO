@@ -1,7 +1,7 @@
 kubestat.py
 * For filter - make "does NOT match regex"
 * Argument: Disable colors
-* Argument: Toggle Megabytes | Mibibytes units
+* Argument: Toggle Raw | Megabytes | Mibibytes units
 * Add context variable where relevant
 * For per-container parsing: make configurable (may be) or simplify
 * Make generic mechanism of parsing resources: CPU, memory, ephemeral-storage, storage
