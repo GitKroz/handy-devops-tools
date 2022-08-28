@@ -17,7 +17,7 @@ from collections import OrderedDict
 ################################################################################
 # Constants, global variables, types
 ################################################################################
-# Types
+#fieldi Types
 JSON = TypeVar('JSON', Dict, List)
 
 # Constants
@@ -41,7 +41,7 @@ COLOR_LIGHT_GREEN   = '\033[0;92m'
 COLOR_LIGHT_YELLOW  = '\033[0;93m'
 COLOR_LIGHT_BLUE    = '\033[0;94m'
 COLOR_LIGHT_MAGENTA = '\033[0;95m'
-COLOR_LIGHT_CYANNTA = '\033[0;96m'
+COLOR_LIGHT_CYAN    = '\033[0;96m'
 COLOR_WHITE         = '\033[0;97m'
 
 COLOR_BOLD_DEFAULT       = '\033[1m'
@@ -59,8 +59,25 @@ COLOR_BOLD_LIGHT_GREEN   = '\033[1;92m'
 COLOR_BOLD_LIGHT_YELLOW  = '\033[1;93m'
 COLOR_BOLD_LIGHT_BLUE    = '\033[1;94m'
 COLOR_BOLD_LIGHT_MAGENTA = '\033[1;95m'
-COLOR_BOLD_LIGHT_CYANNTA = '\033[1;96m'
+COLOR_BOLD_LIGHT_CYAN    = '\033[1;96m'
 COLOR_BOLD_WHITE         = '\033[1;97m'
+
+CONFIG = {
+    'table_columns': {
+        'no_diff_mode':   ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'diff_mode': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+    },
+    'tree_columns': {
+        "no_diff_mode": [],
+        "with_diff_mode": []
+    },
+    'colors': {
+        'changes': {},  # By changes
+        'changes_bold': {},
+        'tree_pod_line': ''
+    },
+    'fields': {}  # Header, alignment (no size)
+}
 
 # Global variables
 logger: Optional[logging.Logger] = None  # Will be filled in setup_logging()
@@ -416,7 +433,7 @@ class ContainerListItem:
         colored_row: str = row
 
         if highlight_changes:
-            # TODO: move to common settinga
+            # TODO: move to common settings
             color_map = {
                 'Unchanged': '',
                 'Deleted Pod': COLOR_RED,
@@ -431,14 +448,15 @@ class ContainerListItem:
         return colored_row
 
     def print_table(self, raw_units: bool, with_changes: bool):
+        global CONFIG
+
         highlight_changes: bool = True
         if self.is_decoration():
             highlight_changes = False
 
-        # TODO: move to common settings
-        columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList']
+        columns = CONFIG['table_columns']['no_diff_mode']
         if with_changes:
-            columns = ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+            columns = CONFIG['table_columns']['diff_mode']
 
         row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
         row = self.highlight_row(row, highlight_changes=highlight_changes)
