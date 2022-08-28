@@ -304,8 +304,8 @@ args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
 dump: Dict = {
     'version': 'v1',  # Version of file format
     # Roles
-    'input': {},  # Command or file -> content (text or json)
-    'reference': {},
+    'input': [],
+    'reference': [],
     'error': None
 }
 
@@ -1164,51 +1164,65 @@ class KubernetesResourceSet:
 
     def read_res_desc_from_cluster(self, namespace: str, role: str) -> List[JSON]:
         global config
-        global logger
         global dump
 
         r = list()
+
+        dump[role].append(
+            {
+                'command': None,
+                'return_code': None,
+                'content': None,
+                'stderr': None
+            }
+        )
+        dump_item = dump[role][-1]
 
         for cmd_template in config['cluster_cmd']:
             cmd = list()
             for argv in cmd_template:
                 cmd.append(argv.format(namespace))
 
-            cmd_str = ' '.join(cmd)  # Used for exceptions / error messages
-            logger.info("Running command: {}".format(cmd_str))
+            dump_item['command'] = ' '.join(cmd)  # Used for exceptions / error messages
 
-            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result: subprocess.CompletedProcess = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             if result.returncode != 0:
                 raise RuntimeError(
-                    "Cannot get namespace content, return code is {}. Command: `{}`. Error: {}".format(result.returncode, cmd_str, result.stderr.decode('utf-8')))
+                    "Cannot get namespace content, return code is {}. Command: `{}`. Error: {}".format(result.returncode, dump_item['command'], result.stderr.decode('utf-8')))
 
             content = result.stdout.decode('utf-8')
 
-            try:
-                res_desc = json.loads(content)
-                dump[role][cmd_str] = res_desc  # JSON format
-            except:
-                dump[role][cmd_str] = content  # string format
-                raise
+            dump_item['content'] = content  # Needed to store text representation of the content for case when JSON parsing fails
+            dump_item['stderr'] = result.stderr.decode('utf-8')
+
+            res_desc = json.loads(content)
+            dump_item['content'] = res_desc  # JSON format
 
             r.append(res_desc)
 
         return r
 
     def read_res_desc_from_file(self, filename: str, role: str) -> List[JSON]:
+        global dump
+
         r = list()
 
-        content: str
+        dump[role].append(
+            {
+                'filename': filename,
+                'content': None,
+            }
+        )
+        dump_item = dump[role][-1]
+
         with open(filename) as file:
             content = file.read()
 
-        try:
-            res_desc = json.loads(content)
-            dump[role][filename] = res_desc  # JSON format
-        except:
-            dump[role][filename] = content  # string format
-            raise
+        dump_item['content'] = content  # Needed to store text representation of the content for case when JSON parsing fails
+
+        res_desc = json.loads(content)
+        dump_item['content'] = res_desc
 
         r.append(res_desc)
 
