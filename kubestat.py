@@ -108,172 +108,172 @@ CONFIG = {
     'fields': {
         # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
         'appKey': {
-            'header': '',
+            'header': 'App Key',
             'alignment': '<'
         },
         'appIndex': {
-            'header': '',
+            'header': 'AppN',
             'alignment': '>'
         },
         'appName': {
-            'header': '',
+            'header': 'Application',
             'alignment': '<'
         },
         'workloadType': {
-            'header': '',
+            'header': 'Kind',
             'alignment': '<'
         },
 
         'podKey': {
-            'header': '',
+            'header': 'Pod Key',
             'alignment': '<'
         },
         'podIndex': {
-            'header': '',
+            'header': '#',
             'alignment': '>'
         },
         'podLocalIndex': {
-            'header': '',
+            'header': 'PodLN',
             'alignment': '>'
         },
         'podName': {
-            'header': '',
+            'header': 'Pod',
             'alignment': '<'
         },
 
         'key': {
-            'header': '',
+            'header': 'Container Key',
             'alignment': '<'
         },
         'index': {
-            'header': '',
+            'header': 'ContN',
             'alignment': '>'
         },
         'localIndex': {
-            'header': '',
+            'header': 'ContLN',
             'alignment': '>'
         },
         'type': {
-            'header': '',
+            'header': 'Type',
             'alignment': '<'
         },
         'name': {
-            'header': '',
+            'header': 'Container',
             'alignment': '<'
         },
 
         'CPURequests': {
-            'header': '',
+            'header': 'CPU_R',
             'alignment': '>'
         },
         'CPULimits': {
-            'header': '',
+            'header': 'CPU_L',
             'alignment': '>'
         },
         'memoryRequests': {
-            'header': '',
+            'header': 'Mem_R',
             'alignment': '>'
         },
         'memoryLimits': {
-            'header': '',
+            'header': 'Mem_L',
             'alignment': '>'
         },
         'ephStorageRequests': {
-            'header': '',
+            'header': 'Eph_R',
             'alignment': '>'
         },
         'ephStorageLimits': {
-            'header': '',
+            'header': 'Eph_L',
             'alignment': '>'
         },
 
         'PVCList': {
-            'header': '',
+            'header': 'PVC List',
             'alignment': '<'
         },
         'PVCQuantity': {
-            'header': '',
+            'header': 'PVC_Q',
             'alignment': '>'
         },
         'PVCRequests': {
-            'header': '',
+            'header': 'PVC_R',
             'alignment': '>'
         },
         'PVCList_not_found': {
-            'header': '',
+            'header': 'PVC List (not found)',
             'alignment': '<'
         },
 
         'change': {
-            'header': '',
+            'header': 'Change',
             'alignment': '<'
         },
         'changedFields': {
-            'header': '',
+            'header': 'Changed Fields',
             'alignment': '<'
         },
 
         'ref_CPURequests': {
-            'header': '',
+            'header': 'rCPU_R',
             'alignment': '>'
         },
         'ref_CPULimits': {
-            'header': '',
+            'header': 'rCPU_L',
             'alignment': '>'
         },
         'ref_memoryRequests': {
-            'header': '',
+            'header': 'rMem_R',
             'alignment': '>'
         },
         'ref_memoryLimits': {
-            'header': '',
+            'header': 'rMem_L',
             'alignment': '>'
         },
         'ref_ephStorageRequests': {
-            'header': '',
+            'header': 'rEph_R',
             'alignment': '>'
         },
         'ref_ephStorageLimits': {
-            'header': '',
+            'header': 'rEph_L',
             'alignment': '>'
         },
 
         'ref_PVCList': {
-            'header': '',
+            'header': 'rPVC List',
             'alignment': '<'
         },
         'ref_PVCQuantity': {
-            'header': '',
+            'header': 'rPVC_Q',
             'alignment': '>'
         },
         'ref_PVCRequests': {
-            'header': '',
+            'header': 'rPVC_R',
             'alignment': '>'
         },
         'ref_PVCList_not_found': {
-            'header': '',
+            'header': 'rPVC List (not found)',
             'alignment': '<'
         },
 
         # Special dynamically generated fields
         '_tree_branch': {
-            'header': '',
+            'header': 'Resource',
             'alignment': '<',  # Combined
         },
         '_tree_branch_pod': {
-            'header': '',
+            'header': None,  # Not used
             'alignment': None  # Not used
         },
         '_tree_branch_container': {
-            'header': '',
+            'header': None,  # Not used
             'alignment': None  # Not used
         },
         '_tree_branch_summary': {
-            'header': '',
+            'header': None,  # Not used
             'alignment': None  # Not used
         },
         '_tree_branch_header': {
-            'header': '',
+            'header': None,  # Not used
             'alignment': None  # Not used
         }
     }  # Header, alignment (no size)
@@ -360,6 +360,29 @@ class ContainerListItem:
             ("_tree_branch_summary", ''),  # str
             ("_tree_branch_header", '')  # str
         ])
+
+        self.assert_fields(consider_fields_width=False)
+
+    def assert_fields(self, consider_fields_width: bool) -> None:
+        # TODO: consider_fields_width is not needed
+        global CONFIG
+
+        for k in self.fields.keys():
+            if k not in CONFIG['fields']:
+                raise AssertionError("Field '{}' is not present in the CONFIG".format(k))
+
+            if consider_fields_width:
+                if k not in ContainerListItem.fields_width:
+                    raise AssertionError("Field '{}' is not present in 'fields_width'".format(k))
+
+        for k in CONFIG['fields']:
+            if k not in self.fields:
+                raise AssertionError("Field '{}' (from CONFIG) is not present in the container".format(k))
+
+        if consider_fields_width:
+            for k in ContainerListItem.fields_width:
+                if k not in self.fields:
+                    raise AssertionError("Field '{}' (from fields_width) is not present in the container".format(k))
 
     @staticmethod
     def reset_field_widths():
@@ -658,52 +681,10 @@ class ContainerListHeader(ContainerListItem):
         super().__init__()
 
     def reset(self):
-        self.fields = OrderedDict([
-            ("appKey", "App Key"),
-            ("appIndex", "AppN"),
-            ("appName", "Application"),
-            ("workloadType", "Workload"),
+        global CONFIG
 
-            ("podKey", "Pod Key"),
-            ("podIndex", "#"),
-            ("podLocalIndex", "PodLN"),
-            ("podName", "Pod"),
-
-            ("key", "Container Key"),
-            ("index", "ContN"),
-            ("localIndex", "LN"),
-            ("type", "Type"),
-            ("name", "Container"),
-
-            ("CPURequests", "CPU_R"),
-            ("CPULimits", "CPU_L"),
-            ("memoryRequests", "Mem_R"),
-            ("memoryLimits", "Mem_L"),
-            ("ephStorageRequests", "Eph_R"),
-            ("ephStorageLimits", "Eph_L"),
-
-            ("PVCList", "PVC List"),
-            ("PVCQuantity", "PVC_Q"),
-            ("PVCRequests", "PVC_R"),
-            ("PVCList_not_found", "PVC List (not found)"),
-
-            ("change", "Change"),
-            ("changedFields", "Changed Fields"),
-
-            ("ref_CPURequests", "rCPU_R"),
-            ("ref_CPULimits", "rCPU_L"),
-            ("ref_memoryRequests", "rMem_R"),
-            ("ref_memoryLimits", "rMem_L"),
-            ("ref_ephStorageRequests", "rEph_R"),
-            ("ref_ephStorageLimits", "rEph_L"),
-
-            ("ref_PVCList", "rPVC List"),
-            ("ref_PVCQuantity", "rPVC_Q"),
-            ("ref_PVCRequests", "rPVC_R"),
-            ("ref_PVCList_not_found", "rPVC List (not found)"),
-
-            ("_tree_branch", "Resource")  # Note: this will be moved to _tree_branch_header and added with indent
-        ])
+        for k in CONFIG['fields']:
+            self.fields[k] = CONFIG['fields'][k]['header']
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
