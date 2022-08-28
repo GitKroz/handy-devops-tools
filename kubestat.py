@@ -1181,8 +1181,11 @@ class KubernetesResourceSet:
                 context
             ))
 
-        container.fields["appName"] = pod_desc["metadata"]["ownerReferences"][0]["name"]
         container.fields["workloadType"] = pod_desc["metadata"]["ownerReferences"][0]["kind"]
+
+        container.fields["appName"] = pod_desc["metadata"]["ownerReferences"][0]["name"]
+        if container.fields["workloadType"] == 'ReplicaSet':
+            container.fields["appName"] = container.fields["appName"][:container.fields["appName"].rfind('-')]  # Delete all symbols after last '-'
 
         # Storage-specific logic (a part of)
         # Note: pod_volumes will be used later when parsing containers
