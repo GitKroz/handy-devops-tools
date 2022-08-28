@@ -105,7 +105,178 @@ CONFIG = {
             'Modified': COLOR_LIGHT_YELLOW
         }
     },
-    'fields': {}  # Header, alignment (no size)
+    'fields': {
+        # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
+        'appKey': {
+            'header': '',
+            'alignment': '<'
+        },
+        'appIndex': {
+            'header': '',
+            'alignment': '>'
+        },
+        'appName': {
+            'header': '',
+            'alignment': '<'
+        },
+        'workloadType': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        'podKey': {
+            'header': '',
+            'alignment': '<'
+        },
+        'podIndex': {
+            'header': '',
+            'alignment': '>'
+        },
+        'podLocalIndex': {
+            'header': '',
+            'alignment': '>'
+        },
+        'podName': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        'key': {
+            'header': '',
+            'alignment': '<'
+        },
+        'index': {
+            'header': '',
+            'alignment': '>'
+        },
+        'localIndex': {
+            'header': '',
+            'alignment': '>'
+        },
+        'type': {
+            'header': '',
+            'alignment': '<'
+        },
+        'name': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        'CPURequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'CPULimits': {
+            'header': '',
+            'alignment': '>'
+        },
+        'memoryRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'memoryLimits': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ephStorageRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ephStorageLimits': {
+            'header': '',
+            'alignment': '>'
+        },
+
+        'PVCList': {
+            'header': '',
+            'alignment': '<'
+        },
+        'PVCQuantity': {
+            'header': '',
+            'alignment': '>'
+        },
+        'PVCRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'PVCList_not_found': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        'change': {
+            'header': '',
+            'alignment': '<'
+        },
+        'changedFields': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        'ref_CPURequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_CPULimits': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_memoryRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_memoryLimits': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_ephStorageRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_ephStorageLimits': {
+            'header': '',
+            'alignment': '>'
+        },
+
+        'ref_PVCList': {
+            'header': '',
+            'alignment': '<'
+        },
+        'ref_PVCQuantity': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_PVCRequests': {
+            'header': '',
+            'alignment': '>'
+        },
+        'ref_PVCList_not_found': {
+            'header': '',
+            'alignment': '<'
+        },
+
+        # Special dynamically generated fields
+        '_tree_branch': {
+            'header': '',
+            'alignment': '<',  # Combined
+        },
+        '_tree_branch_pod': {
+            'header': '',
+            'alignment': None  # Not used
+        },
+        '_tree_branch_container': {
+            'header': '',
+            'alignment': None  # Not used
+        },
+        '_tree_branch_summary': {
+            'header': '',
+            'alignment': None  # Not used
+        },
+        '_tree_branch_header': {
+            'header': '',
+            'alignment': None  # Not used
+        }
+    }  # Header, alignment (no size)
 }
 
 # Global variables
@@ -124,7 +295,6 @@ class ContainerListItem:
 
     # Static variable
     fields_width: Dict = {}
-    fields_alignment: Dict = {}
 
     def __init__(self, values: Optional[Dict] = None):
         self.sym_column_separator = '  '
@@ -243,58 +413,6 @@ class ContainerListItem:
             '_tree_branch_container': 0,
             '_tree_branch_summary': 0,
             '_tree_branch_header': 0
-        }
-
-        ContainerListItem.fields_alignment = {  # < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
-            "appKey": '<',
-            "appIndex": '>',
-            "appName": '<',
-            "workloadType": '<',
-
-            "podKey": '<',
-            "podIndex": '>',
-            "podLocalIndex": '>',
-            "podName": '<',
-
-            "key": '<',
-            "index": '>',
-            "localIndex": '>',
-            "type": '<',
-            "name": '<',
-
-            "CPURequests": '>',
-            "CPULimits": '>',
-            "memoryRequests": '>',
-            "memoryLimits": '>',
-            "ephStorageRequests": '>',
-            "ephStorageLimits": '>',
-
-            "PVCList": '<',
-            "PVCQuantity": '>',
-            "PVCRequests": '>',
-            "PVCList_not_found": '<',
-
-            "change": '<',
-            "changedFields": '<',
-
-            "ref_CPURequests": '>',
-            "ref_CPULimits": '>',
-            "ref_memoryRequests": '>',
-            "ref_memoryLimits": '>',
-            "ref_ephStorageRequests": '>',
-            "ref_ephStorageLimits": '>',
-
-            "ref_PVCList": '<',
-            "ref_PVCQuantity": '>',
-            "ref_PVCRequests": '>',
-            "ref_PVCList_not_found": '<',
-
-            # Special dynamically generated fields
-            '_tree_branch': '<',  # Combined
-            '_tree_branch_pod': '<',
-            '_tree_branch_container': '<',
-            '_tree_branch_summary': '<',
-            '_tree_branch_header': '<'
         }
 
     def generate_keys(self):
@@ -418,7 +536,7 @@ class ContainerListItem:
             color_map = CONFIG['colors']['changes_bold']
 
         for column in columns:
-            field_template = '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}'
+            field_template = '{' + column + ':' + CONFIG['fields'][column]['alignment'] + str(ContainerListItem.fields_width[column]) + '}'
 
             if highlight_changes:
                 # Needed to match both main fields and ref_* fields
@@ -474,7 +592,7 @@ class ContainerListItem:
             tree_branch: str = dynamic_fields['_tree_branch_pod']
 
             # Pod: table row
-            row_template = '{:' + ContainerListItem.fields_alignment['_tree_branch'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
+            row_template = '{:' + CONFIG['fields']['_tree_branch']['alignment'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
 
             row_template = \
                 pod_color_map[self.fields['change']] + \
