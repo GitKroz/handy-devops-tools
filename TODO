@@ -1,5 +1,4 @@
 kubestat.py
-* For filter - make "does NOT match regex"
 * Argument: Disable colors
 * Argument: Toggle Raw | Megabytes | Mibibytes units
 * Add context variable where relevant

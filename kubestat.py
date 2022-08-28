@@ -26,53 +26,53 @@ SYM_LINE = '-'
 # https://dev.to/ifenna__/adding-colors-to-bash-scripts-48g4
 COLOR_RESET = '\033[0m'
 
-COLOR_DEFAULT       = '\033[0m'
-COLOR_BLACK         = '\033[0;30m'
-COLOR_RED           = '\033[0;31m'
-COLOR_GREEN         = '\033[0;32m'
-COLOR_YELLOW        = '\033[0;33m'
-COLOR_BLUE          = '\033[0;34m'
-COLOR_MAGENTA       = '\033[0;35m'
-COLOR_CYAN          = '\033[0;36m'
-COLOR_LIGHT_GRAY    = '\033[0;37m'
-COLOR_GRAY          = '\033[0;90m'
-COLOR_LIGHT_RED     = '\033[0;91m'
-COLOR_LIGHT_GREEN   = '\033[0;92m'
-COLOR_LIGHT_YELLOW  = '\033[0;93m'
-COLOR_LIGHT_BLUE    = '\033[0;94m'
+COLOR_DEFAULT = '\033[0m'
+COLOR_BLACK = '\033[0;30m'
+COLOR_RED = '\033[0;31m'
+COLOR_GREEN = '\033[0;32m'
+COLOR_YELLOW = '\033[0;33m'
+COLOR_BLUE = '\033[0;34m'
+COLOR_MAGENTA = '\033[0;35m'
+COLOR_CYAN = '\033[0;36m'
+COLOR_LIGHT_GRAY = '\033[0;37m'
+COLOR_GRAY = '\033[0;90m'
+COLOR_LIGHT_RED = '\033[0;91m'
+COLOR_LIGHT_GREEN = '\033[0;92m'
+COLOR_LIGHT_YELLOW = '\033[0;93m'
+COLOR_LIGHT_BLUE = '\033[0;94m'
 COLOR_LIGHT_MAGENTA = '\033[0;95m'
-COLOR_LIGHT_CYAN    = '\033[0;96m'
-COLOR_WHITE         = '\033[0;97m'
+COLOR_LIGHT_CYAN = '\033[0;96m'
+COLOR_WHITE = '\033[0;97m'
 
-COLOR_BOLD_DEFAULT       = '\033[1m'
-COLOR_BOLD_BLACK         = '\033[1;30m'
-COLOR_BOLD_RED           = '\033[1;31m'
-COLOR_BOLD_GREEN         = '\033[1;32m'
-COLOR_BOLD_YELLOW        = '\033[1;33m'
-COLOR_BOLD_BLUE          = '\033[1;34m'
-COLOR_BOLD_MAGENTA       = '\033[1;35m'
-COLOR_BOLD_CYAN          = '\033[1;36m'
-COLOR_BOLD_LIGHT_GRAY    = '\033[1;37m'
-COLOR_BOLD_GRAY          = '\033[1;90m'
-COLOR_BOLD_LIGHT_REDY    = '\033[1;91m'
-COLOR_BOLD_LIGHT_GREEN   = '\033[1;92m'
-COLOR_BOLD_LIGHT_YELLOW  = '\033[1;93m'
-COLOR_BOLD_LIGHT_BLUE    = '\033[1;94m'
+COLOR_BOLD_DEFAULT = '\033[1m'
+COLOR_BOLD_BLACK = '\033[1;30m'
+COLOR_BOLD_RED = '\033[1;31m'
+COLOR_BOLD_GREEN = '\033[1;32m'
+COLOR_BOLD_YELLOW = '\033[1;33m'
+COLOR_BOLD_BLUE = '\033[1;34m'
+COLOR_BOLD_MAGENTA = '\033[1;35m'
+COLOR_BOLD_CYAN = '\033[1;36m'
+COLOR_BOLD_LIGHT_GRAY = '\033[1;37m'
+COLOR_BOLD_GRAY = '\033[1;90m'
+COLOR_BOLD_LIGHT_REDY = '\033[1;91m'
+COLOR_BOLD_LIGHT_GREEN = '\033[1;92m'
+COLOR_BOLD_LIGHT_YELLOW = '\033[1;93m'
+COLOR_BOLD_LIGHT_BLUE = '\033[1;94m'
 COLOR_BOLD_LIGHT_MAGENTA = '\033[1;95m'
-COLOR_BOLD_LIGHT_CYAN    = '\033[1;96m'
-COLOR_BOLD_WHITE         = '\033[1;97m'
+COLOR_BOLD_LIGHT_CYAN = '\033[1;96m'
+COLOR_BOLD_WHITE = '\033[1;97m'
 
 CONFIG = {
     'table_view': {
-        'columns_no_diff':   ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
     },
     'tree_view': {
         # Make sure first field is '_tree_branch'
-        'columns_no_diff':   ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_no_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
         'columns_with_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields'],
 
-        'pod_branch':       ['podIndex', 'workloadType', 'podName'],
+        'pod_branch': ['podIndex', 'workloadType', 'podName'],
         'container_branch': ['type', 'name'],
 
         'header_indent': 4,
@@ -423,6 +423,9 @@ class ContainerListItem:
     def is_deleted(self) -> bool:
         return self.fields['change'] in ['Deleted Pod', 'Deleted Container']
 
+    def is_new(self) -> bool:
+        return self.fields['change'] in ['New Pod', 'New Container']
+
     def check_if_modified(self):
         for res_field in ['CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCList', 'PVCRequests']:
             if self.fields[res_field] != self.fields['ref_' + res_field]:
@@ -736,12 +739,15 @@ class KubernetesResourceSet:
     containers: List[ContainerListItem] = list()
     pvcs: List[PVCListItem] = list()
 
+    all_resources = None
+
     def __init__(self):
         self.reset()
 
     def reset(self):
         self.containers = list()
         self.pvcs = list()
+        self.all_resources = None
 
     def renew_keys(self) -> None:
         # Sort
@@ -837,15 +843,25 @@ class KubernetesResourceSet:
         self.pvcs = sorted(self.pvcs, key=lambda p: p.fields['key'])
 
     # Note: each field in criteria is a regex
-    def filter(self, criteria: ContainerListItem):
+    def filter(self, criteria: ContainerListItem, inverse: bool):
         r = KubernetesResourceSet()
+
+        r.all_resources = self
+        if self.all_resources is not None:
+            r.all_resources = self.all_resources
 
         r.pvcs = self.pvcs  # TODO: Think if filter is to be applied here. May be not.
 
         for container in self.containers:
             matches = True
             for field in ["workloadType", "podName", "type", "name"]:
-                matches = matches and bool(re.search(criteria.fields[field], container.fields[field]))
+                if criteria.fields[field] == '':
+                    continue
+
+                match_by_field = bool(re.search(criteria.fields[field], container.fields[field]))
+                if inverse:
+                    match_by_field = not match_by_field
+                matches = matches and match_by_field
 
             if matches:
                 r.containers.append(container)
@@ -867,15 +883,7 @@ class KubernetesResourceSet:
         }
 
         # FILTERED pods quantity, containers quantity, sum of all resources (except PVC)
-        prev_container = None
         for container in self.containers:
-            if container.is_deleted():
-                continue
-
-            stat['filtered_containers'] = stat['filtered_containers'] + 1
-            if not container.is_same_pod(prev_container):
-                stat['filtered_pods'] = stat['filtered_pods'] + 1
-
             for field in [
                 'CPURequests', 'CPULimits',
                 'memoryRequests', 'memoryLimits',
@@ -897,16 +905,17 @@ class KubernetesResourceSet:
                         type(r.fields[field])
                     ))
 
-            prev_container = container
+        # Filtered pods quantity, containers quantity
+        stat['filtered_pods'] = self.get_pod_quantity(allow_deleted=False, allow_new=True)
+        stat['filtered_containers'] = self.get_container_quantity(allow_deleted=False, allow_new=True)
 
         # ALL pods quantity, containers quantity
-        # Assumption:
-        # - pod index and container index were not changed after filtering. renew_keys() was not run after filter()
-        # - pod index and container index start from 1 (not from 0)
-        if len(self.containers) > 0:
-            last_container = self.containers[-1]
-            stat['all_pods'] = last_container.fields['podIndex']
-            stat['all_containers'] = last_container.fields['index']
+        all_resources = self.all_resources
+        if all_resources is None:
+            all_resources = self
+
+        stat['all_pods'] = all_resources.get_pod_quantity(allow_deleted=False, allow_new=True)
+        stat['all_containers'] = all_resources.get_container_quantity(allow_deleted=False, allow_new=True)
 
         # PVC quantity
         stat['all_pvcs'] = self.get_pvc_quantity(allow_deleted=False, allow_new=True)
@@ -959,12 +968,12 @@ class KubernetesResourceSet:
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
-    def make_summary_items(self, with_changes:  bool) -> List[ContainerListItem]:
+    def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
         summary = list()
 
         for summary_cfg in CONFIG['summary']:
             criteria: ContainerListItem = parse_filter_expression(criteria=summary_cfg['filter'])
-            filtered_subset: KubernetesResourceSet = self.filter(criteria=criteria)
+            filtered_subset: KubernetesResourceSet = self.filter(criteria=criteria, inverse=False)
             summary_item = filtered_subset.get_resources_total(
                 with_changes=with_changes,
                 pod_name_template=summary_cfg['pod_text'],
@@ -1268,6 +1277,28 @@ class KubernetesResourceSet:
 
         return None
 
+    def get_container_quantity(self, allow_deleted: bool, allow_new: bool) -> int:
+        r = 0
+        for container in self.containers:
+            if not allow_deleted and container.is_deleted():
+                continue
+            if not allow_new and container.is_new():
+                continue
+            r = r + 1
+
+        return r
+
+    def get_pod_quantity(self, allow_deleted: bool, allow_new: bool) -> int:
+        pods = set()
+        for container in self.containers:
+            if not allow_deleted and container.is_deleted():  # Assuming no pods without containers
+                continue
+            if not allow_new and container.is_new():  # Assuming no pods without containers
+                continue
+            pods.add(container.fields['podKey'])  # Note: Cannot use name, since one pod may have different names during compare/diff
+
+        return len(pods)
+
     def get_pvc_quantity(self, allow_deleted: bool, allow_new: bool) -> int:
         r = 0
         for pvc in self.pvcs:
@@ -1438,8 +1469,13 @@ def parse_args():
         epilog=epilog,
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('-f', '--filter', dest='filter_criteria', type=str,
-                        help='Match only pods/containers matching criteria. Refer below for details.')
+
+    filter_args_group = parser.add_mutually_exclusive_group(required=False)
+    filter_args_group.add_argument('-f', '--filter', dest='filter_criteria', type=str,
+                                   help='Match only pods/containers matching criteria. Refer below for details.')
+    filter_args_group.add_argument('-F', '--filter-not', dest='inverse_filter_criteria', type=str,
+                                   help='Match only pods/containers NOT matching criteria. Refer below for details.')
+
     parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree',
                         help='Specify output format: tree, table, csv')
     parser.add_argument('-r', metavar='FILE', dest='references', type=str, action='append',
@@ -1649,10 +1685,20 @@ def main():
         if with_changes:
             all_resources.compare(ref_resources)
 
-        resources = all_resources.filter(
-            parse_filter_expression(args.filter_criteria)
-        )
+        # Filtering
+        resources = all_resources
+        if args.filter_criteria is not None:
+            resources = all_resources.filter(
+                parse_filter_expression(args.filter_criteria),
+                inverse=False
+            )
+        if args.inverse_filter_criteria is not None:
+            resources = all_resources.filter(
+                parse_filter_expression(args.inverse_filter_criteria),
+                inverse=True
+            )
 
+        # Output
         resources.print(output_format=args.output_format, raw_units=args.raw_units, with_changes=with_changes)
     except Exception as e:
         logger.error(("{}".format(e)))
