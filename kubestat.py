@@ -361,82 +361,25 @@ class ContainerListItem:
             ("_tree_branch_header", '')  # str
         ])
 
-        self.assert_fields(consider_fields_width=False)
+        self.assert_fields()
 
-    def assert_fields(self, consider_fields_width: bool) -> None:
-        # TODO: consider_fields_width is not needed
+    def assert_fields(self) -> None:
         global CONFIG
 
         for k in self.fields.keys():
             if k not in CONFIG['fields']:
                 raise AssertionError("Field '{}' is not present in the CONFIG".format(k))
 
-            if consider_fields_width:
-                if k not in ContainerListItem.fields_width:
-                    raise AssertionError("Field '{}' is not present in 'fields_width'".format(k))
-
         for k in CONFIG['fields']:
             if k not in self.fields:
                 raise AssertionError("Field '{}' (from CONFIG) is not present in the container".format(k))
 
-        if consider_fields_width:
-            for k in ContainerListItem.fields_width:
-                if k not in self.fields:
-                    raise AssertionError("Field '{}' (from fields_width) is not present in the container".format(k))
-
     @staticmethod
     def reset_field_widths():
-        ContainerListItem.fields_width = {
-            "appKey": 0,
-            "appIndex": 0,
-            "appName": 0,
-            "workloadType": 0,
+        global CONFIG
 
-            "podKey": 0,
-            "podIndex": 0,
-            "podLocalIndex": 0,
-            "podName": 0,
-
-            "key": 0,
-            "index": 0,
-            "localIndex": 0,
-            "type": 0,
-            "name": 0,
-
-            "CPURequests": 0,
-            "CPULimits": 0,
-            "memoryRequests": 0,
-            "memoryLimits": 0,
-            "ephStorageRequests": 0,
-            "ephStorageLimits": 0,
-
-            "PVCList": 0,
-            "PVCQuantity": 0,
-            "PVCRequests": 0,
-            "PVCList_not_found": 0,
-
-            "change": 0,
-            "changedFields": 0,
-
-            "ref_CPURequests": 0,
-            "ref_CPULimits": 0,
-            "ref_memoryRequests": 0,
-            "ref_memoryLimits": 0,
-            "ref_ephStorageRequests": 0,
-            "ref_ephStorageLimits": 0,
-
-            "ref_PVCList": 0,
-            "ref_PVCQuantity": 0,
-            "ref_PVCRequests": 0,
-            "ref_PVCList_not_found": 0,
-
-            # Special dynamically generated fields
-            '_tree_branch': 0,  # Combined
-            '_tree_branch_pod': 0,
-            '_tree_branch_container': 0,
-            '_tree_branch_summary': 0,
-            '_tree_branch_header': 0
-        }
+        for k in CONFIG['fields'].keys():
+            ContainerListItem.fields_width[k] = 0
 
     def generate_keys(self):
         self.fields['appKey'] = self.fields['appName']
