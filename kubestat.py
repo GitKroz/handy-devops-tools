@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import TypeVar, Dict, List, Set, Optional, Union
+from typing import TypeVar, Dict, List, Optional, Union
 import logging
 import argparse
 import sys
@@ -64,6 +64,7 @@ COLOR_BOLD_LIGHT_CYAN = '\033[1;96m'
 COLOR_BOLD_WHITE = '\033[1;97m'
 
 config = {
+    'units': '',  # Will be set by argparse
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
@@ -405,6 +406,7 @@ class ContainerListItem:
     def has_container(self) -> bool:
         return self.fields["name"] != ""
 
+    # To be overloaded
     def is_decoration(self) -> bool:  # Header, Line etc
         return False
 
@@ -433,32 +435,40 @@ class ContainerListItem:
                 self.fields['change'] = 'Modified'
                 self.fields['changedFields'].add(res_field)
 
+    # raw_units is needed here because this function is used by print_csv
     def get_formatted_fields(self, raw_units: bool) -> Dict:
         formatted_fields = copy.deepcopy(self.fields)
 
         # Make human-readable values
-        if not self.is_decoration():
-            formatted_fields["CPURequests"] = res_cpu_millicores_to_str(formatted_fields["CPURequests"], raw_units)
-            formatted_fields["CPULimits"] = res_cpu_millicores_to_str(formatted_fields["CPULimits"], raw_units)
+        if not self.is_decoration() and not raw_units:
+            # CPU fields
+            for field in ["CPURequests", "CPULimits", "ref_CPURequests", "ref_CPULimits"]:
+                if config['units'] == 'bin':
+                    formatted_fields[field] = res_cpu_millicores_to_str(value=formatted_fields[field])
+                elif config['units'] == 'si':
+                    formatted_fields[field] = res_cpu_millicores_to_str(value=formatted_fields[field])  # Same as bin
+                elif config['units'] == 'raw':
+                    pass
+                else:
+                    raise RuntimeError("Unknown unit type: {}".format(config['units']))
 
-            formatted_fields["memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["memoryRequests"], raw_units)
-            formatted_fields["memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["memoryLimits"], raw_units)
-
-            formatted_fields["ephStorageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ephStorageRequests"], raw_units)
-            formatted_fields["ephStorageLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ephStorageLimits"], raw_units)
-
-            formatted_fields["PVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["PVCRequests"], raw_units)
-
-            formatted_fields["ref_CPURequests"] = res_cpu_millicores_to_str(formatted_fields["ref_CPURequests"], raw_units)
-            formatted_fields["ref_CPULimits"] = res_cpu_millicores_to_str(formatted_fields["ref_CPULimits"], raw_units)
-
-            formatted_fields["ref_memoryRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryRequests"], raw_units)
-            formatted_fields["ref_memoryLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_memoryLimits"], raw_units)
-
-            formatted_fields["ref_ephStorageRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_ephStorageRequests"], raw_units)
-            formatted_fields["ref_ephStorageLimits"] = res_mem_bytes_to_str_1024(formatted_fields["ref_ephStorageLimits"], raw_units)
-
-            formatted_fields["ref_PVCRequests"] = res_mem_bytes_to_str_1024(formatted_fields["ref_PVCRequests"], raw_units)
+            # Memory/storage fields
+            for field in [
+                "memoryRequests", "memoryLimits",
+                "ephStorageRequests", "ephStorageLimits",
+                "PVCRequests",
+                "ref_memoryRequests", "ref_memoryLimits",
+                "ref_ephStorageRequests", "ref_ephStorageLimits",
+                "ref_PVCRequests"
+            ]:
+                if config['units'] == 'bin':
+                    formatted_fields[field] = res_mem_bytes_to_str_1024(value=formatted_fields[field])
+                elif config['units'] == 'si':
+                    formatted_fields[field] = res_mem_bytes_to_str_1000(value=formatted_fields[field])
+                elif config['units'] == 'raw':
+                    pass
+                else:
+                    raise RuntimeError("Unknown unit type: {}".format(config['units']))
 
         # Make sure all fields are strings
         for k, v in formatted_fields.items():
@@ -470,7 +480,7 @@ class ContainerListItem:
         return formatted_fields
 
     # Special about dynamic fields: they rely on values and width of main fields
-    def get_dynamic_fields(self, raw_units: bool) -> Dict:
+    def get_dynamic_fields(self) -> Dict:
         global config
 
         dynamic_fields: Dict = dict()
@@ -482,12 +492,12 @@ class ContainerListItem:
 
         # Pod
         columns = config['tree_view']['pod_branch']
-        value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
+        value = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_pod'] = (' ' * pod_indent_width) + value
 
         # Container
         columns = config['tree_view']['container_branch']
-        value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
+        value = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
         # # Summary - relevant only for summary items
@@ -507,7 +517,7 @@ class ContainerListItem:
         # Result
         return dynamic_fields
 
-    def fields_to_table(self, columns: List, raw_units: bool, highlight_changes: bool, make_bold: bool) -> str:
+    def fields_to_table(self, columns: List, highlight_changes: bool, make_bold: bool) -> str:
         global config
 
         template: str = ""
@@ -540,11 +550,11 @@ class ContainerListItem:
 
             template = template + field_template + self.sym_column_separator
 
-        formatted_fields = self.get_formatted_fields(raw_units=raw_units)
+        formatted_fields = self.get_formatted_fields(raw_units=False)
 
         return template.format(**formatted_fields)
 
-    def print_table(self, raw_units: bool, with_changes: bool):
+    def print_table(self, with_changes: bool):
         global config
 
         highlight_changes: bool = True
@@ -555,14 +565,14 @@ class ContainerListItem:
         if with_changes:
             columns = config['table_view']['columns_with_diff']
 
-        row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
+        row = self.fields_to_table(columns=columns, highlight_changes=highlight_changes, make_bold=False)
 
         print(row)
 
-    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+    def print_tree(self, prev_container, with_changes: bool):
         global config
 
-        dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        dynamic_fields: Dict = self.get_dynamic_fields()
 
         if prev_container is None or not prev_container.is_same_pod(container=self):
             # Printing additional pod line
@@ -592,7 +602,7 @@ class ContainerListItem:
         if with_changes:
             columns = config['tree_view']['columns_with_diff']
 
-        row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
+        row: str = self.fields_to_table(columns=columns, highlight_changes=True, make_bold=False)
 
         print(row)
 
@@ -615,7 +625,7 @@ class ContainerListLine(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+    def print_tree(self, prev_container, with_changes: bool):
         global config
 
         # First column
@@ -626,7 +636,7 @@ class ContainerListLine(ContainerListItem):
         if with_changes:
             columns = config['tree_view']['columns_with_diff']
 
-        row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
+        row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=True)
 
         print(row)
 
@@ -647,11 +657,11 @@ class ContainerListHeader(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+    def print_tree(self, prev_container, with_changes: bool):
         global config
 
         # First column
-        dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        dynamic_fields: Dict = self.get_dynamic_fields()
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
         # Print row
@@ -659,7 +669,7 @@ class ContainerListHeader(ContainerListItem):
         if with_changes:
             columns = config['tree_view']['columns_with_diff']
 
-        row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
+        row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=True)
 
         print(row)
 
@@ -673,9 +683,9 @@ class ContainerListSummary(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-    def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
+    def print_tree(self, prev_container, with_changes: bool):
         # First column
-        dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
+        dynamic_fields: Dict = self.get_dynamic_fields()
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Print row
@@ -683,7 +693,7 @@ class ContainerListSummary(ContainerListItem):
         if with_changes:
             columns = config['tree_view']['columns_with_diff']
 
-        row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
+        row: str = self.fields_to_table(columns=columns, highlight_changes=True, make_bold=True)
 
         print(row)
 
@@ -953,19 +963,19 @@ class KubernetesResourceSet:
 
         return r
 
-    def set_optimal_field_width(self, raw_units: bool) -> None:
+    def set_optimal_field_width(self) -> None:
         ContainerListItem.reset_field_widths()
 
         summary = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
 
         for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
-            str_fields = container.get_formatted_fields(raw_units=raw_units)
+            str_fields = container.get_formatted_fields(raw_units=False)
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
         # Special about dynamic fields: they rely on values and width of main fields
         for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
-            str_fields = container.get_dynamic_fields(raw_units=raw_units)
+            str_fields = container.get_dynamic_fields()
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
@@ -984,12 +994,12 @@ class KubernetesResourceSet:
 
         return summary
 
-    def print(self, output_format: str, raw_units: bool, with_changes: bool):
+    def print(self, output_format: str, with_changes: bool):
         global logger
         global config
 
         # Columns width (not needed for CSV)
-        self.set_optimal_field_width(raw_units)
+        self.set_optimal_field_width()
 
         # Summary lines
         summary = self.make_summary_items(with_changes=with_changes)
@@ -997,44 +1007,44 @@ class KubernetesResourceSet:
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
-            self.print_table(raw_units=raw_units, with_changes=with_changes, summary=summary)
+            self.print_table(with_changes=with_changes, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
-            self.print_tree(raw_units=raw_units, with_changes=with_changes, summary=summary)
+            self.print_tree(with_changes=with_changes, summary=summary)
         elif output_format == "csv":
             logger.debug("Output format: csv")
             self.print_csv()
         else:
             raise RuntimeError("Invalid output format: {}".format(output_format))
 
-    def print_table(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
+    def print_table(self, with_changes: bool, summary: Optional[List] = False):
 
-        ContainerListHeader().print_table(raw_units=raw_units, with_changes=with_changes)
-        ContainerListLine().print_table(raw_units=raw_units, with_changes=with_changes)
+        ContainerListHeader().print_table(with_changes=with_changes)
+        ContainerListLine().print_table(with_changes=with_changes)
 
         for container in self.containers:
-            container.print_table(raw_units=raw_units, with_changes=with_changes)
+            container.print_table(with_changes=with_changes)
 
-        ContainerListLine().print_table(raw_units=raw_units, with_changes=with_changes)
+        ContainerListLine().print_table(with_changes=with_changes)
 
         for summary_item in summary:
-            summary_item.print_table(raw_units=raw_units, with_changes=with_changes)
+            summary_item.print_table(with_changes=with_changes)
 
-    def print_tree(self, raw_units: bool, with_changes: bool, summary: Optional[List] = False):
-        self.set_optimal_field_width(raw_units=raw_units)
+    def print_tree(self, with_changes: bool, summary: Optional[List] = False):
+        self.set_optimal_field_width()
 
-        ContainerListHeader().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
-        ContainerListLine().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
+        ContainerListHeader().print_tree(prev_container=None, with_changes=with_changes)
+        ContainerListLine().print_tree(prev_container=None, with_changes=with_changes)
 
         prev_container = None
         for container in self.containers:
-            container.print_tree(raw_units=raw_units, prev_container=prev_container, with_changes=with_changes)
+            container.print_tree(prev_container=prev_container, with_changes=with_changes)
             prev_container = container
 
-        ContainerListLine().print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
+        ContainerListLine().print_tree(prev_container=None, with_changes=with_changes)
 
         for summary_item in summary:
-            summary_item.print_tree(raw_units=raw_units, prev_container=None, with_changes=with_changes)
+            summary_item.print_tree(prev_container=None, with_changes=with_changes)
 
     def print_csv(self):
         ContainerListHeader().print_csv()
@@ -1480,12 +1490,12 @@ def parse_args():
     filter_args_group.add_argument('-F', '--filter-not', dest='inverse_filter_criteria', type=str,
                                    help='Match only pods/containers NOT matching criteria. Refer below for details.')
 
-    parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree',
-                        help='Specify output format: tree, table, csv')
+    parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree', choices=['tree', 'table', 'csv'],
+                        help='Specify output format')
     parser.add_argument('-r', metavar='FILE', dest='references', type=str, action='append',
                         help='Reference file(s) or @namespace to compare with')
-    parser.add_argument('-u', dest='raw_units', action="store_true",
-                        help="Don't convert CPU and Memory values in human-readable format")
+    parser.add_argument('-u', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
+                        help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
     parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
                         help='Input file(s) or @namespace')
 
@@ -1593,73 +1603,68 @@ def res_mem_str_to_bytes(value: str) -> int:
     return r
 
 
-def res_cpu_millicores_to_str(value: int, raw_units: bool) -> str:
-    r = str(value)  # Raw units
+def res_cpu_millicores_to_str(value: int) -> str:
+    r = str(value) + "m"
+
+    if value > 10 * 1000 - 1:
+        r = str(round(float(value) / 1000, 1))
 
     if value == 0:
         r = '0'
-    else:
-        if not raw_units:
-            r = str(value) + "m"
-
-            if value > 10 * 1000 - 1:
-                r = str(round(float(value) / 1000, 1))
 
     return r
 
 
-def res_mem_bytes_to_str_1024(value: int, raw_units: bool) -> str:
+def res_mem_bytes_to_str_1024(value: int) -> str:
     r = str(value)
+
+    if value > 1 * 1024 - 1:
+        r = str(round(float(value) / 1024, 1)) + "ki"
+
+    if value > 1 * 1024 * 1024 - 1:
+        r = str(round(float(value) / 1024 / 1024, 1)) + "Mi"
+
+    if value > 1 * 1024 * 1024 * 1024 - 1:
+        r = str(round(float(value) / 1024 / 1024 / 1024, 1)) + "Gi"
+
+    if value > 1 * 1024 * 1024 * 1024 * 1024 - 1:
+        r = str(round(float(value) / 1024 / 1024 / 1024 / 1024, 1)) + "Ti"
+
+    if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
+        r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Pi"
+
+    if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
+        r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Ei"
 
     if value == 0:
         r = '0'
-    else:
-        if not raw_units:
-            if value > 1 * 1024 - 1:
-                r = str(round(float(value) / 1024, 1)) + "ki"
-
-            if value > 1 * 1024 * 1024 - 1:
-                r = str(round(float(value) / 1024 / 1024, 1)) + "Mi"
-
-            if value > 1 * 1024 * 1024 * 1024 - 1:
-                r = str(round(float(value) / 1024 / 1024 / 1024, 1)) + "Gi"
-
-            if value > 1 * 1024 * 1024 * 1024 * 1024 - 1:
-                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024, 1)) + "Ti"
-
-            if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
-                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Pi"
-
-            if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
-                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Ei"
 
     return r
 
 
-def res_mem_bytes_to_str_1000(value: int, raw_units: bool) -> str:
+def res_mem_bytes_to_str_1000(value: int) -> str:
     r = str(value)
+
+    if value > 1 * 1000 - 1:
+        r = str(round(float(value) / 1000, 1)) + "k"
+
+    if value > 1 * 1000 * 1000 - 1:
+        r = str(round(float(value) / 1000 / 1000, 1)) + "M"
+
+    if value > 1 * 1000 * 1000 * 1000 - 1:
+        r = str(round(float(value) / 1000 / 1000 / 1000, 1)) + "G"
+
+    if value > 1 * 1000 * 1000 * 1000 * 1000 - 1:
+        r = str(round(float(value) / 1000 / 1000 / 1000 / 1000, 1)) + "T"
+
+    if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
+        r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "P"
+
+    if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
+        r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "E"
 
     if value == 0:
         r = '0'
-    else:
-        if not raw_units:
-            if value > 1 * 1000 - 1:
-                r = str(round(float(value) / 1000, 1)) + "k"
-
-            if value > 1 * 1000 * 1000 - 1:
-                r = str(round(float(value) / 1000 / 1000, 1)) + "M"
-
-            if value > 1 * 1000 * 1000 * 1000 - 1:
-                r = str(round(float(value) / 1000 / 1000 / 1000, 1)) + "G"
-
-            if value > 1 * 1000 * 1000 * 1000 * 1000 - 1:
-                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000, 1)) + "T"
-
-            if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
-                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "P"
-
-            if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
-                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "E"
 
     return r
 
@@ -1682,12 +1687,17 @@ def cfg_disable_colors() -> None:
 ################################################################################
 
 def main():
+    global logger
+    global config
+
     setup_logging()
 
     parse_args()
 
     if args.no_colors:
         cfg_disable_colors()
+
+    config['units'] = args.units
 
     all_resources = KubernetesResourceSet()
     ref_resources = KubernetesResourceSet()
@@ -1719,7 +1729,7 @@ def main():
             )
 
         # Output
-        resources.print(output_format=args.output_format, raw_units=args.raw_units, with_changes=with_changes)
+        resources.print(output_format=args.output_format, with_changes=with_changes)
     except Exception as e:
         logger.error(("{}".format(e)))
         traceback.print_exc()
