@@ -1729,8 +1729,7 @@ def cfg_disable_colors() -> None:
 def write_dump(filename: str):
     global dump
 
-    # TODO: make output more beautiful
-    content = json.dumps(dump)
+    content = json.dumps(dump, indent=2)
     with open(file=filename, mode='w') as file:
         file.write(content)
 
