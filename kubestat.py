@@ -121,7 +121,7 @@ config = {
     'units': '',  # Will be set by argparse
     'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
         ['cat', '{}']
-        # ['kubectl', '--namespace={}', '--output=json', 'get', 'pods']
+        # ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json']
 
     ],
     'fields': {
@@ -1186,6 +1186,8 @@ class KubernetesResourceSet:
             dump_item['command'] = ' '.join(cmd)  # Used for exceptions / error messages
 
             result: subprocess.CompletedProcess = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            dump_item['return_code'] = result.returncode
 
             if result.returncode != 0:
                 raise RuntimeError(
