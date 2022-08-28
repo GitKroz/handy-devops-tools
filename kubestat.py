@@ -64,7 +64,6 @@ COLOR_BOLD_LIGHT_CYAN = '\033[1;96m'
 COLOR_BOLD_WHITE = '\033[1;97m'
 
 config = {
-    'units': '',  # Will be set by argparse
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
@@ -118,6 +117,10 @@ config = {
             'pod_text': '{filtered_pods}/{all_pods} non-job pods using {used_pvcs}/{all_pvcs} PVCs',
             'container_text': '{filtered_containers}/{all_containers} non-init containers'
         }
+    ],
+    'units': '',  # Will be set by argparse
+    'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
+        ['cat', '{}']
     ],
     'fields': {
         # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
@@ -1150,41 +1153,58 @@ class KubernetesResourceSet:
                 if volume_type is None:
                     raise RuntimeError("Volume mount '{}' not found in pod_descpod volumes".format(mount['name']))
 
-    def read_res_desc_from_cluster(self, namespace: str) -> JSON:
-        cmd = ['cat', namespace]
-        cmd_str = ' '.join(cmd)
+    def read_res_desc_from_cluster(self, namespace: str) -> List[JSON]:
+        global config
+        global logger
 
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        r = list()
 
-        if result.returncode != 0:
-            raise RuntimeError(
-                "Cannot get namespace content, return code is {}. Command: `{}`. Error: '{}'".format(result.returncode, cmd_str, result.stderr.decode('utf-8')))
+        for cmd_template in config['cluster_cmd']:
+            cmd = list()
+            for argv in cmd_template:
+                cmd.append(argv.format(namespace))
 
-        content = result.stdout.decode('utf-8')
+            cmd_str = ' '.join(cmd)  # Used for exceptions / error messages
+            logger.info("Running command: {}".format(cmd_str))
 
-        pods = json.loads(content)
+            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        return pods
+            if result.returncode != 0:
+                raise RuntimeError(
+                    "Cannot get namespace content, return code is {}. Command: `{}`. Error: {}".format(result.returncode, cmd_str, result.stderr.decode('utf-8')))
 
-    def read_res_desc_from_file(self, filename: str) -> JSON:
+            content = result.stdout.decode('utf-8')
+
+            pods = json.loads(content)
+
+            r.append(pods)
+
+        return r
+
+    def read_res_desc_from_file(self, filename: str) -> List[JSON]:
+        r = list()
+
         with open(filename) as podsFile:
             res_desc = json.load(podsFile)
 
-        return res_desc
+        r.append(res_desc)
 
-    def read_res_desc(self, source: str) -> JSON:
+        return r
+
+    def read_res_desc(self, source: str) -> List[JSON]:
         if source[:1] == "@":
-            res_desc = self.read_res_desc_from_cluster(namespace=source[1:])
+            res_desc_list = self.read_res_desc_from_cluster(namespace=source[1:])
         else:
-            res_desc = self.read_res_desc_from_file(filename=source)
+            res_desc_list = self.read_res_desc_from_file(filename=source)
 
         try:
-            if res_desc['apiVersion'] != 'v1':
-                raise RuntimeError("Unsupported input format: expecting 'apiVersion': 'v1', but '{}' is given".format(res_desc['apiVersion']))
+            for res_desc in res_desc_list:
+                if res_desc['apiVersion'] != 'v1':
+                    raise RuntimeError("Unsupported input format: expecting 'apiVersion': 'v1', but '{}' is given".format(res_desc['apiVersion']))
         except KeyError:
             raise RuntimeError("Unsupported input format: expecting apiVersion 'v1', but no apiVersion is given")
 
-        return res_desc
+        return res_desc_list
 
     def load(self, source: str) -> None:
         global logger
@@ -1193,20 +1213,21 @@ class KubernetesResourceSet:
 
         logger.debug("Parsing {}".format(context))
 
-        res_desc: JSON = self.read_res_desc(source=source)
+        res_desc_list: List[JSON] = self.read_res_desc(source=source)
 
-        res_index = 0
-        for res_item_desc in res_desc["items"]:
-            context_res_item = {**context, 'index': res_index}
+        for res_desc in res_desc_list:
+            res_index = 0  # TODO: Index in which res_desc?
+            for res_item_desc in res_desc["items"]:
+                context_res_item = {**context, 'index': res_index}
 
-            if res_item_desc['kind'] == 'Pod':
-                self.load_pod(pod_desc=res_item_desc, context=context_res_item)
-            elif res_item_desc['kind'] == 'PersistentVolumeClaim':
-                self.load_pvc(pvc_desc=res_item_desc, context=context_res_item)
-            else:
-                raise RuntimeError("Unexpected resource kind: {}. Context: {}".format(res_item_desc['kind'], context_res_item))
+                if res_item_desc['kind'] == 'Pod':
+                    self.load_pod(pod_desc=res_item_desc, context=context_res_item)
+                elif res_item_desc['kind'] == 'PersistentVolumeClaim':
+                    self.load_pvc(pvc_desc=res_item_desc, context=context_res_item)
+                else:
+                    raise RuntimeError("Unexpected resource kind: {}. Context: {}".format(res_item_desc['kind'], context_res_item))
 
-            res_index = res_index + 1
+                res_index = res_index + 1
 
         self.renew_keys()
         self.renew_relations()
