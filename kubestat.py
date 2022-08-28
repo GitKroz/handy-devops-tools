@@ -853,18 +853,18 @@ class KubernetesResourceSet:
     def get_resources_total(self, with_changes: bool, pod_name_suffix: str = '', container_name_suffix: str = '') -> ContainerListItem:
         r = ContainerListSummary()
 
-        pod_quantity = 0
-        container_quantity = 0
+        filtered_pod_quantity = 0
+        filtered_container_quantity = 0
 
-        # Pod quantity, container quantity, sum of all resources (except PVC)
+        # FILTERED pods quantity, containers quantity, sum of all resources (except PVC)
         prev_container = None
         for container in self.containers:
             if container.is_deleted():
                 continue
 
-            container_quantity = container_quantity + 1
+            filtered_container_quantity = filtered_container_quantity + 1
             if not container.is_same_pod(prev_container):
-                pod_quantity = pod_quantity + 1
+                filtered_pod_quantity = filtered_pod_quantity + 1
 
             r.fields["CPURequests"] = r.fields["CPURequests"] + container.fields["CPURequests"]
             r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
@@ -887,6 +887,14 @@ class KubernetesResourceSet:
 
             prev_container = container
 
+        # ALL pods quantity, containers quantity
+        # Assumption:
+        # - pod index and container index were not changed after filtering. renew_keys() was not run after filter()
+        # - pod index and container index start from 1 (not from 0)
+        last_container = self.containers[-1]
+        all_pod_quantity = last_container.fields['podIndex']
+        all_container_quantity = last_container.fields['index']
+
         # PVC quantity
         r.fields['PVCQuantity'] = len(r.fields['PVCList'])
         r.fields['ref_PVCQuantity'] = len(r.fields['ref_PVCList'])
@@ -903,8 +911,7 @@ class KubernetesResourceSet:
                 r.fields['ref_PVCRequests'] = r.fields['ref_PVCRequests'] + pvc.fields['ref_requests']
 
         # PVC statistic
-        used_pvc_names = self.get_used_pvc_names()
-        used_pvc_quantity = len(used_pvc_names)
+        used_pvc_quantity = len(r.fields['PVCList'])
         pvc_quantity = self.get_pvc_quantity()
         # TODO: Show quantity of reference PVCs vs quantity of subject PVCs
 
@@ -912,8 +919,15 @@ class KubernetesResourceSet:
         r.fields["key"] = ""
         r.fields["podKey"] = ""
         r.fields["podIndex"] = ""
-        r.fields["podName"] = "{} pods using {} of {} PVCs{}".format(pod_quantity, used_pvc_quantity, pvc_quantity, pod_name_suffix)
-        r.fields["name"] = "{} containers{}".format(container_quantity, container_name_suffix)
+        r.fields["podName"] = "{}/{} pods using {}/{} PVCs{}".format(
+            filtered_pod_quantity, all_pod_quantity,
+            used_pvc_quantity, pvc_quantity,
+            pod_name_suffix
+        )
+        r.fields["name"] = "{}/{} containers{}".format(
+            filtered_container_quantity, all_container_quantity,
+            container_name_suffix
+        )
 
         r.fields["change"] = "Unchanged"
         r.fields["changedFields"] = set()
@@ -1381,13 +1395,16 @@ def parse_args():
         -f kind=Replica\\|State
         -f kind='Replica|State'
         
-        Filter all non-Jobs:
-        -f kind='^(?!Job).*$'
+        Filter all pods having 'abc' in the name:
+        -f abc
+        -f pod=abc
+        -f podName=abc
         
-        Filter all pods having 'log' in the name:
-        -f log
-        -f pod=log
-        -f podName=log
+        Filter all pods having '-abc' in the name (pattern started with '-'):
+        -f (-abc)
+        
+        Filter all pods NOT having 'abc' in the name:
+        -f 'pod=^((?!abc).)*$'
         
         Filter all application (non-init) containers in all ReplicaSets with "log" in pod name:
         -f log,kind=R,type=reg
