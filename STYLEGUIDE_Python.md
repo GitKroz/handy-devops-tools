@@ -23,6 +23,24 @@ PyCharm 2022.2:
   * Hard wrap at: 1000 
 * View > Active Editor > Soft-Wrap
 
+### Multiple Spaces before Operator
+
+Allowed when it helps to read the code.
+
+Example:
+
+```python
+COLOR_LIGHT_YELLOW  = '\033[0;93m'
+COLOR_LIGHT_BLUE    = '\033[0;94m'
+COLOR_LIGHT_MAGENTA = '\033[0;95m'
+COLOR_LIGHT_CYAN    = '\033[0;96m'
+```
+
+PyCharm 2022.2:
+* File > Settings > Editor > Inspections > Python
+  * \[X\] PEP8 coding style violation
+    * Options, Ignored errors - add 'E221'
+
 ### Programming
 
 #### Type Hints
