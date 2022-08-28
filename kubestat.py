@@ -65,12 +65,12 @@ COLOR_BOLD_WHITE = '\033[1;97m'
 
 config = {
     'table_view': {
-        'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
     },
     'tree_view': {
         # Make sure first field is '_tree_branch'
-        'columns_no_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
+        'columns_no_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
         'columns_with_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields'],
 
         'pod_branch': ['podIndex', 'workloadType', 'podName'],
@@ -121,6 +121,8 @@ config = {
     'units': '',  # Will be set by argparse
     'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
         ['cat', '{}']
+        # ['kubectl', '--namespace={}', '--output=json', 'get', 'pods']
+
     ],
     'fields': {
         # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
@@ -299,6 +301,11 @@ config = {
 # Global variables
 logger: Optional[logging.Logger] = None  # Will be filled in setup_logging()
 args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
+dump: Dict = {
+    'input': [],
+    'reference': [],
+    'error': None
+}
 
 
 ################################################################################
@@ -1153,9 +1160,10 @@ class KubernetesResourceSet:
                 if volume_type is None:
                     raise RuntimeError("Volume mount '{}' not found in pod_descpod volumes".format(mount['name']))
 
-    def read_res_desc_from_cluster(self, namespace: str) -> List[JSON]:
+    def read_res_desc_from_cluster(self, namespace: str, role: str) -> List[JSON]:
         global config
         global logger
+        global dump
 
         r = list()
 
@@ -1175,27 +1183,40 @@ class KubernetesResourceSet:
 
             content = result.stdout.decode('utf-8')
 
-            pods = json.loads(content)
+            try:
+                res_desc = json.loads(content)
+                dump[role].append(res_desc)  # JSON format
+            except:
+                dump[role].append(content)  # string format
+                raise
 
-            r.append(pods)
+            r.append(res_desc)
 
         return r
 
-    def read_res_desc_from_file(self, filename: str) -> List[JSON]:
+    def read_res_desc_from_file(self, filename: str, role: str) -> List[JSON]:
         r = list()
 
-        with open(filename) as podsFile:
-            res_desc = json.load(podsFile)
+        content: str
+        with open(filename) as file:
+            content = file.read()
+
+        try:
+            res_desc = json.loads(content)
+            dump[role].append(res_desc)  # JSON format
+        except:
+            dump[role].append(content)  # string format
+            raise
 
         r.append(res_desc)
 
         return r
 
-    def read_res_desc(self, source: str) -> List[JSON]:
+    def read_res_desc(self, source: str, role: str) -> List[JSON]:
         if source[:1] == "@":
-            res_desc_list = self.read_res_desc_from_cluster(namespace=source[1:])
+            res_desc_list = self.read_res_desc_from_cluster(namespace=source[1:], role=role)
         else:
-            res_desc_list = self.read_res_desc_from_file(filename=source)
+            res_desc_list = self.read_res_desc_from_file(filename=source, role=role)
 
         try:
             for res_desc in res_desc_list:
@@ -1206,14 +1227,14 @@ class KubernetesResourceSet:
 
         return res_desc_list
 
-    def load(self, source: str) -> None:
+    def load(self, source: str, role: str) -> None:
         global logger
 
         context = {'source': source}
 
         logger.debug("Parsing {}".format(context))
 
-        res_desc_list: List[JSON] = self.read_res_desc(source=source)
+        res_desc_list: List[JSON] = self.read_res_desc(source=source, role=role)
 
         for res_desc in res_desc_list:
             res_index = 0  # TODO: Index in which res_desc?
@@ -1502,6 +1523,8 @@ def parse_args():
         formatter_class=argparse.RawTextHelpFormatter
     )
 
+    parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
+                        help='Write dump to the file')
     parser.add_argument('--no-colors', dest='no_colors', action="store_true",
                         help="Disable colors")
 
@@ -1513,9 +1536,9 @@ def parse_args():
 
     parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree', choices=['tree', 'table', 'csv'],
                         help='Specify output format')
-    parser.add_argument('-r', metavar='FILE', dest='references', type=str, action='append',
+    parser.add_argument('-r', '--reference', metavar='FILE', dest='references', type=str, action='append',
                         help='Reference file(s) or @namespace to compare with')
-    parser.add_argument('-u', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
+    parser.add_argument('-u', '--units', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
                         help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
     parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
                         help='Input file(s) or @namespace')
@@ -1703,6 +1726,15 @@ def cfg_disable_colors() -> None:
     COLOR_RESET = COLOR_NONE
 
 
+def write_dump(filename: str):
+    global dump
+
+    # TODO: make output more beautiful
+    content = json.dumps(dump)
+    with open(file=filename, mode='w') as file:
+        file.write(content)
+
+
 ################################################################################
 # Main
 ################################################################################
@@ -1725,12 +1757,12 @@ def main():
 
     try:
         for source in args.inputs:
-            all_resources.load(source=source)
+            all_resources.load(source=source, role='input')
 
         with_changes = False
         if args.references is not None:
             for source in args.references:
-                ref_resources.load(source=source)
+                ref_resources.load(source=source, role='reference')
                 with_changes = True
 
         if with_changes:
@@ -1752,9 +1784,18 @@ def main():
         # Output
         resources.print(output_format=args.output_format, with_changes=with_changes)
     except Exception as e:
-        logger.error(("{}".format(e)))
+        msg = "{}".format(e)
+        logger.error(msg)
         traceback.print_exc()
+
+        dump['error'] = msg
+        if args.dump_file is not None:
+            write_dump(args.dump_file)
+
         quit(1)
+
+    if args.dump_file is not None:
+        write_dump(args.dump_file)
 
 
 if __name__ == "__main__":
