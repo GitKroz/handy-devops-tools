@@ -1,4 +1,5 @@
 kubestat.py
+* Get data from @namespace
 * Argument: Disable colors
 * Argument: Toggle Raw | Megabytes | Mibibytes units
 * Add context variable where relevant
