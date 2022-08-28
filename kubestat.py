@@ -105,6 +105,18 @@ CONFIG = {
             'Modified': COLOR_LIGHT_YELLOW
         }
     },
+    'summary': [
+        {
+            'filter': '',
+            'pod_text': '{filtered_pods}/{all_pods} pods using {used_pvcs}/{all_pvcs}',
+            'container_text': '{filtered_containers}/{all_containers} containers'
+        },
+        {
+            'filter': 'workloadType=^((?!Job).)*$, type=^((?!init).)*$',
+            'pod_text': '{filtered_pods}/{all_pods} non-job pods using {used_pvcs}/{all_pvcs}',
+            'container_text': '{filtered_containers}/{all_containers} non-init containers'
+        }
+    ],
     'fields': {
         # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
         'appKey': {
@@ -841,20 +853,19 @@ class KubernetesResourceSet:
 
         return r
 
-    def get_used_pvc_names(self) -> Set:
-        r = set()
-
-        for pvc in self.pvcs:
-            if pvc.is_used():
-                r.add(pvc.fields['name'])
-
-        return r
-
-    def get_resources_total(self, with_changes: bool, pod_name_suffix: str = '', container_name_suffix: str = '') -> ContainerListItem:
+    def get_resources_total(self, with_changes: bool, pod_name_template: str, container_name_template: str = '') -> ContainerListItem:
         r = ContainerListSummary()
 
-        filtered_pod_quantity = 0
-        filtered_container_quantity = 0
+        stat = {
+            'filtered_pods': 0,
+            'all_pods': 0,
+            'filtered_containers': 0,
+            'all_containers': 0,
+            'used_pvcs': 0,
+            'ref_used_pvcs': 0,
+            'all_pvcs': 0,
+            'ref_all_pvcs': 0
+        }
 
         # FILTERED pods quantity, containers quantity, sum of all resources (except PVC)
         prev_container = None
@@ -862,10 +873,11 @@ class KubernetesResourceSet:
             if container.is_deleted():
                 continue
 
-            filtered_container_quantity = filtered_container_quantity + 1
+            stat['filtered_containers'] = stat['filtered_containers'] + 1
             if not container.is_same_pod(prev_container):
-                filtered_pod_quantity = filtered_pod_quantity + 1
+                stat['filtered_pods'] = stat['filtered_pods'] + 1
 
+            # TODO: Optimize
             r.fields["CPURequests"] = r.fields["CPURequests"] + container.fields["CPURequests"]
             r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
             r.fields["memoryRequests"] = r.fields["memoryRequests"] + container.fields["memoryRequests"]
@@ -892,12 +904,18 @@ class KubernetesResourceSet:
         # - pod index and container index were not changed after filtering. renew_keys() was not run after filter()
         # - pod index and container index start from 1 (not from 0)
         last_container = self.containers[-1]
-        all_pod_quantity = last_container.fields['podIndex']
-        all_container_quantity = last_container.fields['index']
+        stat['all_pods'] = last_container.fields['podIndex']
+        stat['all_containers'] = last_container.fields['index']
 
         # PVC quantity
-        r.fields['PVCQuantity'] = len(r.fields['PVCList'])
-        r.fields['ref_PVCQuantity'] = len(r.fields['ref_PVCList'])
+        stat['all_pvcs'] = self.get_pvc_quantity(allow_deleted=False, allow_new=True)
+        stat['ref_all_pvcs'] = self.get_pvc_quantity(allow_deleted=True, allow_new=False)
+
+        stat['used_pvcs'] = len(r.fields['PVCList'])
+        r.fields['PVCQuantity'] = stat['used_pvcs']
+
+        stat['ref_used_pvcs'] = len(r.fields['ref_PVCList'])
+        r.fields['ref_PVCQuantity'] = stat['ref_used_pvcs']
 
         # Sum of all USED PVC storage sizes
         for pvc_name in r.fields['PVCList']:
@@ -910,24 +928,12 @@ class KubernetesResourceSet:
             if pvc is not None:
                 r.fields['ref_PVCRequests'] = r.fields['ref_PVCRequests'] + pvc.fields['ref_requests']
 
-        # PVC statistic
-        used_pvc_quantity = len(r.fields['PVCList'])
-        pvc_quantity = self.get_pvc_quantity()
-        # TODO: Show quantity of reference PVCs vs quantity of subject PVCs
-
         # Other fields
         r.fields["key"] = ""
         r.fields["podKey"] = ""
         r.fields["podIndex"] = ""
-        r.fields["podName"] = "{}/{} pods using {}/{} PVCs{}".format(
-            filtered_pod_quantity, all_pod_quantity,
-            used_pvc_quantity, pvc_quantity,
-            pod_name_suffix
-        )
-        r.fields["name"] = "{}/{} containers{}".format(
-            filtered_container_quantity, all_container_quantity,
-            container_name_suffix
-        )
+        r.fields["podName"] = pod_name_template.format(**stat)
+        r.fields["name"] = container_name_template.format(**stat)
 
         r.fields["change"] = "Unchanged"
         r.fields["changedFields"] = set()
@@ -952,6 +958,7 @@ class KubernetesResourceSet:
 
     def print(self, output_format: str, raw_units: bool, with_changes: bool):
         global logger
+        global CONFIG
 
         # Columns width (not needed for CSV)
         self.set_optimal_field_width(raw_units)
@@ -959,15 +966,25 @@ class KubernetesResourceSet:
         # Summary lines
         summary = list()
 
-        summary.append(self.get_resources_total(with_changes=with_changes))
+        for summary_cfg in CONFIG['summary']:
+            criteria: ContainerListItem = parse_filter_expression(criteria=summary_cfg['filter'])
+            filtered_subset: KubernetesResourceSet = self.filter(criteria=criteria)
+            summary_item = filtered_subset.get_resources_total(
+                with_changes=with_changes,
+                pod_name_template=summary_cfg['pod_text'],
+                container_name_template=summary_cfg['container_text']
+            )
+            summary.append(summary_item)
 
-        running = self.filter(ContainerListItem(  # Non-jobs, non-init containers
-            {
-                "workloadType": '^(?!Job).*$',
-                "type": "^(?!init).*$"
-            }
-        ))
-        summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix=' (non-jobs)', container_name_suffix=' (non-init)'))
+        # summary.append(self.get_resources_total(with_changes=with_changes))
+
+        # running = self.filter(ContainerListItem(  # Non-jobs, non-init containers
+        #     {
+        #         "workloadType": '^((?!Job).)*$',
+        #         "type": "^((?!init).)*$"
+        #     }
+        # ))
+        # summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix=' (non-jobs)', container_name_suffix=' (non-init)'))
 
         # Printing
         if output_format == "table":
@@ -1253,8 +1270,16 @@ class KubernetesResourceSet:
 
         return None
 
-    def get_pvc_quantity(self) -> int:
-        return len(self.pvcs)
+    def get_pvc_quantity(self, allow_deleted: bool, allow_new: bool) -> int:
+        r = 0
+        for pvc in self.pvcs:
+            if not allow_deleted and pvc.is_deleted():
+                continue
+            if not allow_new and pvc.is_new():
+                continue
+            r = r + 1
+
+        return r
 
     def compare(self, ref_res):
         # TODO: Clear previous comparison
@@ -1439,11 +1464,17 @@ def parse_args():
 def parse_filter_expression(criteria: str) -> ContainerListItem:
     r = ContainerListItem()
 
-    if criteria is not None:
+    if criteria is None:
+        criteria = ''
+
+    criteria = criteria.strip(' ')
+    if criteria != '':
         for criterion in criteria.split(','):
             parts = criterion.split("=", 1)
             if len(parts) == 1:
                 parts = ["podName", parts[0]]
+
+            parts[0] = parts[0].strip(' ')
 
             # Resolve aliases
             aliases = {
