@@ -1367,9 +1367,13 @@ def parse_args():
 
     epilog = \
         """
+        Example:
+        
+        ./kubestat.py -o table -r ref_pods.json -r rev_pvcs.json pods.json pvcs.json
+        
         Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, name (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
         
-        Examples:\n
+        Examples:
         
         Filter all ReplicaSets:
         -f kind=Replica

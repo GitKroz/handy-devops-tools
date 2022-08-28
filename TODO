@@ -8,4 +8,3 @@ kubestat.py
 * Validation: Resource management: if requests/limits are not specified, set some flag when calculating totals (calculation is not precise)
 * Validation: as summary show if there are any unresolved PVCs
 * Validation: as summary show if there are any not used PVCs
-* Help: show example with several reference files
