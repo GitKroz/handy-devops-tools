@@ -108,12 +108,12 @@ CONFIG = {
     'summary': [
         {
             'filter': '',
-            'pod_text': '{filtered_pods}/{all_pods} pods using {used_pvcs}/{all_pvcs}',
+            'pod_text': '{filtered_pods}/{all_pods} pods using {used_pvcs}/{all_pvcs} PVCs',
             'container_text': '{filtered_containers}/{all_containers} containers'
         },
         {
             'filter': 'workloadType=^((?!Job).)*$, type=^((?!init).)*$',
-            'pod_text': '{filtered_pods}/{all_pods} non-job pods using {used_pvcs}/{all_pvcs}',
+            'pod_text': '{filtered_pods}/{all_pods} non-job pods using {used_pvcs}/{all_pvcs} PVCs',
             'container_text': '{filtered_containers}/{all_containers} non-init containers'
         }
     ],
@@ -877,25 +877,26 @@ class KubernetesResourceSet:
             if not container.is_same_pod(prev_container):
                 stat['filtered_pods'] = stat['filtered_pods'] + 1
 
-            # TODO: Optimize
-            r.fields["CPURequests"] = r.fields["CPURequests"] + container.fields["CPURequests"]
-            r.fields["CPULimits"] = r.fields["CPULimits"] + container.fields["CPULimits"]
-            r.fields["memoryRequests"] = r.fields["memoryRequests"] + container.fields["memoryRequests"]
-            r.fields["memoryLimits"] = r.fields["memoryLimits"] + container.fields["memoryLimits"]
-            r.fields["ephStorageRequests"] = r.fields["ephStorageRequests"] + container.fields["ephStorageRequests"]
-            r.fields["ephStorageLimits"] = r.fields["ephStorageLimits"] + container.fields["ephStorageLimits"]
+            for field in [
+                'CPURequests', 'CPULimits',
+                'memoryRequests', 'memoryLimits',
+                'ephStorageRequests', 'ephStorageLimits',
+                'PVCList', 'PVCList_not_found',
 
-            r.fields["ref_CPURequests"] = r.fields["ref_CPURequests"] + container.fields["ref_CPURequests"]
-            r.fields["ref_CPULimits"] = r.fields["ref_CPULimits"] + container.fields["ref_CPULimits"]
-            r.fields["ref_memoryRequests"] = r.fields["ref_memoryRequests"] + container.fields["ref_memoryRequests"]
-            r.fields["ref_memoryLimits"] = r.fields["ref_memoryLimits"] + container.fields["ref_memoryLimits"]
-            r.fields["ref_ephStorageRequests"] = r.fields["ref_ephStorageRequests"] + container.fields["ref_ephStorageRequests"]
-            r.fields["ref_ephStorageLimits"] = r.fields["ref_ephStorageLimits"] + container.fields["ref_ephStorageLimits"]
-
-            r.fields["PVCList"] = r.fields["PVCList"].union(container.fields["PVCList"])
-            r.fields["PVCList_not_found"] = r.fields["PVCList_not_found"].union(container.fields["PVCList_not_found"])
-            r.fields["ref_PVCList"] = r.fields["ref_PVCList"].union(container.fields["ref_PVCList"])
-            r.fields["ref_PVCList_not_found"] = r.fields["ref_PVCList_not_found"].union(container.fields["ref_PVCList_not_found"])
+                'ref_CPURequests', 'ref_CPULimits',
+                'ref_memoryRequests', 'ref_memoryLimits',
+                'ref_ephStorageRequests', 'ref_ephStorageLimits',
+                'ref_PVCList', 'ref_PVCList_not_found'
+            ]:
+                if type(r.fields[field]) is int:
+                    r.fields[field] = r.fields[field] + container.fields[field]
+                elif type(r.fields[field]) is set:
+                    r.fields[field] = r.fields[field].union(container.fields[field])
+                else:
+                    raise RuntimeError("Invalid type of field {} used for summary: {}".format(
+                        field,
+                        type(r.fields[field])
+                    ))
 
             prev_container = container
 
