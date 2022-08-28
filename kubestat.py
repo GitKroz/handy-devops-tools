@@ -302,8 +302,10 @@ config = {
 logger: Optional[logging.Logger] = None  # Will be filled in setup_logging()
 args: Optional[argparse.Namespace] = None  # Will be filled in parse_args()
 dump: Dict = {
-    'input': [],
-    'reference': [],
+    'version': 'v1',  # Version of file format
+    # Roles
+    'input': {},  # Command or file -> content (text or json)
+    'reference': {},
     'error': None
 }
 
@@ -1185,9 +1187,9 @@ class KubernetesResourceSet:
 
             try:
                 res_desc = json.loads(content)
-                dump[role].append(res_desc)  # JSON format
+                dump[role][cmd_str] = res_desc  # JSON format
             except:
-                dump[role].append(content)  # string format
+                dump[role][cmd_str] = content  # string format
                 raise
 
             r.append(res_desc)
@@ -1203,9 +1205,9 @@ class KubernetesResourceSet:
 
         try:
             res_desc = json.loads(content)
-            dump[role].append(res_desc)  # JSON format
+            dump[role][filename] = res_desc  # JSON format
         except:
-            dump[role].append(content)  # string format
+            dump[role][filename] = content  # string format
             raise
 
         r.append(res_desc)
