@@ -1,6 +1,5 @@
 kubestat.py
 * For filter - make "does NOT match regex"
-* Bug: When no output (e. g. filter everything off) last line of summary is not aligned correctly
 * Argument: Disable colors
 * Argument: Toggle Raw | Megabytes | Mibibytes units
 * Add context variable where relevant

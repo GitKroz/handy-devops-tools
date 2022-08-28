@@ -486,9 +486,8 @@ class ContainerListItem:
         value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
-        # Summary - relevant only for summary items
+        # # Summary - relevant only for summary items
         dynamic_fields['_tree_branch_summary'] = (' ' * summary_indent_width) + self.fields['podName'] + ', ' + self.fields['name']
-        fake_tree_branch_summary = '999 pods 99 of 99 PVCs (non-jobs), 999 containers (non-init)'
 
         # Header - relevant only for header items
         dynamic_fields['_tree_branch_header'] = (' ' * tree_branch_header_indent_width) + self.fields['_tree_branch']
@@ -497,7 +496,7 @@ class ContainerListItem:
         dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
             len(dynamic_fields['_tree_branch_pod']),
             len(dynamic_fields['_tree_branch_container']),
-            len(fake_tree_branch_summary),
+            len(dynamic_fields['_tree_branch_summary']),
             len(dynamic_fields['_tree_branch_header'])
         )
 
@@ -904,9 +903,10 @@ class KubernetesResourceSet:
         # Assumption:
         # - pod index and container index were not changed after filtering. renew_keys() was not run after filter()
         # - pod index and container index start from 1 (not from 0)
-        last_container = self.containers[-1]
-        stat['all_pods'] = last_container.fields['podIndex']
-        stat['all_containers'] = last_container.fields['index']
+        if len(self.containers) > 0:
+            last_container = self.containers[-1]
+            stat['all_pods'] = last_container.fields['podIndex']
+            stat['all_containers'] = last_container.fields['index']
 
         # PVC quantity
         stat['all_pvcs'] = self.get_pvc_quantity(allow_deleted=False, allow_new=True)
@@ -946,25 +946,20 @@ class KubernetesResourceSet:
     def set_optimal_field_width(self, raw_units: bool) -> None:
         ContainerListItem.reset_field_widths()
 
-        for container in self.containers + [ContainerListHeader()]:  # Taking maximum length of values of all containers plus header
+        summary = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
+
+        for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_formatted_fields(raw_units=raw_units)
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
         # Special about dynamic fields: they rely on values and width of main fields
-        for container in self.containers + [ContainerListHeader()]:  # Taking maximum length of values of all containers plus header
+        for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_dynamic_fields(raw_units=raw_units)
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
-    def print(self, output_format: str, raw_units: bool, with_changes: bool):
-        global logger
-        global CONFIG
-
-        # Columns width (not needed for CSV)
-        self.set_optimal_field_width(raw_units)
-
-        # Summary lines
+    def make_summary_items(self, with_changes:  bool) -> List[ContainerListItem]:
         summary = list()
 
         for summary_cfg in CONFIG['summary']:
@@ -976,6 +971,18 @@ class KubernetesResourceSet:
                 container_name_template=summary_cfg['container_text']
             )
             summary.append(summary_item)
+
+        return summary
+
+    def print(self, output_format: str, raw_units: bool, with_changes: bool):
+        global logger
+        global CONFIG
+
+        # Columns width (not needed for CSV)
+        self.set_optimal_field_width(raw_units)
+
+        # Summary lines
+        summary = self.make_summary_items(with_changes=with_changes)
 
         # Printing
         if output_format == "table":
