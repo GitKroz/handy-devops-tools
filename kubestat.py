@@ -17,7 +17,7 @@ from collections import OrderedDict
 ################################################################################
 # Constants, global variables, types
 ################################################################################
-#fieldi Types
+# Types
 JSON = TypeVar('JSON', Dict, List)
 
 # Constants
@@ -820,7 +820,7 @@ class KubernetesResourceSet:
         # Pod quantity, container quantity, sum of all resources (except PVC)
         prev_container = None
         for container in self.containers:
-            if container.is_deleted():  # TODO: review logic
+            if container.is_deleted():
                 continue
 
             container_quantity = container_quantity + 1
@@ -867,7 +867,7 @@ class KubernetesResourceSet:
         used_pvc_names = self.get_used_pvc_names()
         used_pvc_quantity = len(used_pvc_names)
         pvc_quantity = self.get_pvc_quantity()
-        # TODO: Quantity of reference PVCs vs quantity of subject PVCs
+        # TODO: Show quantity of reference PVCs vs quantity of subject PVCs
 
         # Other fields
         r.fields["key"] = ""
@@ -996,7 +996,7 @@ class KubernetesResourceSet:
 
         return container
 
-    def add_pvc(self) -> PVCListItem:  # TODO: align with add_pods and add_containers
+    def add_pvc(self) -> PVCListItem:
         i: int = len(self.pvcs)
 
         pvc: PVCListItem
