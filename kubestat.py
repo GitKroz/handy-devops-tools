@@ -80,9 +80,30 @@ CONFIG = {
         'container_indent': 6,
     },
     'colors': {
-        'changes': {},  # By changes
-        'changes_bold': {},
-        'tree_pod_line': ''
+        'changes': {
+            'Unchanged': COLOR_DEFAULT,
+            'Deleted Pod': COLOR_RED,
+            'Deleted Container': COLOR_RED,
+            'New Pod': COLOR_GREEN,
+            'New Container': COLOR_GREEN,
+            'Modified': COLOR_LIGHT_YELLOW
+        },
+        'changes_bold': {
+            'Unchanged': COLOR_BOLD_DEFAULT,
+            'Deleted Pod': COLOR_BOLD_RED,
+            'Deleted Container': COLOR_BOLD_RED,
+            'New Pod': COLOR_BOLD_GREEN,
+            'New Container': COLOR_BOLD_GREEN,
+            'Modified': COLOR_BOLD_LIGHT_YELLOW
+        },
+        'changes_tree_pod_branch': {
+            'Unchanged': COLOR_WHITE,
+            'Deleted Pod': COLOR_LIGHT_RED,
+            'Deleted Container': COLOR_LIGHT_YELLOW,  # Deleted container is modified pod
+            'New Pod': COLOR_LIGHT_GREEN,
+            'New Container': COLOR_LIGHT_YELLOW,  # New container is modified pod
+            'Modified': COLOR_LIGHT_YELLOW
+        }
     },
     'fields': {}  # Header, alignment (no size)
 }
@@ -389,26 +410,13 @@ class ContainerListItem:
         return dynamic_fields
 
     def fields_to_table(self, columns: List, raw_units: bool, highlight_changes: bool, make_bold: bool) -> str:
+        global CONFIG
+
         template: str = ""
 
-        # TODO: move to common settings
-        color_map = {
-            'Unchanged': COLOR_DEFAULT,
-            'Deleted Pod': COLOR_RED,
-            'Deleted Container': COLOR_RED,
-            'New Pod': COLOR_GREEN,
-            'New Container': COLOR_GREEN,
-            'Modified': COLOR_LIGHT_YELLOW
-        }
+        color_map = CONFIG['colors']['changes']
         if make_bold:
-            color_map = {
-                'Unchanged': COLOR_BOLD_DEFAULT,
-                'Deleted Pod': COLOR_BOLD_RED,
-                'Deleted Container': COLOR_BOLD_RED,
-                'New Pod': COLOR_BOLD_GREEN,
-                'New Container': COLOR_BOLD_GREEN,
-                'Modified': COLOR_BOLD_LIGHT_YELLOW
-            }
+            color_map = CONFIG['colors']['changes_bold']
 
         for column in columns:
             field_template = '{' + column + ':' + ContainerListItem.fields_alignment[column] + str(ContainerListItem.fields_width[column]) + '}'
@@ -481,15 +489,7 @@ class ContainerListItem:
         if prev_container is None or not prev_container.is_same_pod(container=self):
             # Printing additional pod line
 
-            # TODO: move to common settings
-            pod_color_map = {
-                'Unchanged': COLOR_WHITE,
-                'Deleted Pod': COLOR_LIGHT_RED,
-                'Deleted Container': COLOR_LIGHT_YELLOW,  # Deleted container is modified pod
-                'New Pod': COLOR_LIGHT_GREEN,
-                'New Container': COLOR_LIGHT_YELLOW,  # New container is modified pod
-                'Modified': COLOR_LIGHT_YELLOW
-            }
+            pod_color_map = CONFIG['colors']['changes_tree_pod_branch']
 
             highlight_changes = True  # TODO: make function parameter
 
