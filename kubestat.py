@@ -121,7 +121,8 @@ config = {
     'units': '',  # Will be set by argparse
     'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
         ['cat', '{}']
-        # ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json']
+        # ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json'],
+        # ['kubectl', '--namespace={}', 'get', 'pvc', '--output', 'json']
 
     ],
     'fields': {
@@ -1185,7 +1186,7 @@ class KubernetesResourceSet:
 
             dump_item['command'] = ' '.join(cmd)  # Used for exceptions / error messages
 
-            result: subprocess.CompletedProcess = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result: subprocess.CompletedProcess = subprocess.run(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             dump_item['return_code'] = result.returncode
 
@@ -1543,7 +1544,7 @@ def parse_args():
 
     parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
                         help='Write dump to the file')
-    parser.add_argument('--no-colors', dest='no_colors', action="store_true",
+    parser.add_argument('-c', '--colors', dest='colors', action="store_true",
                         help="Disable colors")
 
     filter_args_group = parser.add_mutually_exclusive_group(required=False)
@@ -1764,7 +1765,7 @@ def main():
 
     parse_args()
 
-    if args.no_colors:
+    if not args.colors:
         cfg_disable_colors()
 
     config['units'] = args.units
