@@ -977,16 +977,6 @@ class KubernetesResourceSet:
             )
             summary.append(summary_item)
 
-        # summary.append(self.get_resources_total(with_changes=with_changes))
-
-        # running = self.filter(ContainerListItem(  # Non-jobs, non-init containers
-        #     {
-        #         "workloadType": '^((?!Job).)*$',
-        #         "type": "^((?!init).)*$"
-        #     }
-        # ))
-        # summary.append(running.get_resources_total(with_changes=with_changes, pod_name_suffix=' (non-jobs)', container_name_suffix=' (non-init)'))
-
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
