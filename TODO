@@ -1,5 +1,4 @@
 kubestat.py
-* Create common configuration to simplify modifying output format
 * For filter - make "does NOT match regex"
 * Argument: Disable colors
 * Argument: Toggle Megabytes | Mibibytes units
