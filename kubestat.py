@@ -1515,11 +1515,14 @@ def res_mem_str_to_bytes(value: str) -> int:
 def res_cpu_millicores_to_str(value: int, raw_units: bool) -> str:
     r = str(value)  # Raw units
 
-    if not raw_units:
-        r = str(value) + "m"
+    if value == 0:
+        r = '0'
+    else:
+        if not raw_units:
+            r = str(value) + "m"
 
-        if value > 10 * 1000 - 1:
-            r = str(round(float(value) / 1000, 1))
+            if value > 10 * 1000 - 1:
+                r = str(round(float(value) / 1000, 1))
 
     return r
 
@@ -1527,24 +1530,27 @@ def res_cpu_millicores_to_str(value: int, raw_units: bool) -> str:
 def res_mem_bytes_to_str_1024(value: int, raw_units: bool) -> str:
     r = str(value)
 
-    if not raw_units:
-        if value > 1 * 1024 - 1:
-            r = str(round(float(value) / 1024, 1)) + "ki"
+    if value == 0:
+        r = '0'
+    else:
+        if not raw_units:
+            if value > 1 * 1024 - 1:
+                r = str(round(float(value) / 1024, 1)) + "ki"
 
-        if value > 1 * 1024 * 1024 - 1:
-            r = str(round(float(value) / 1024 / 1024, 1)) + "Mi"
+            if value > 1 * 1024 * 1024 - 1:
+                r = str(round(float(value) / 1024 / 1024, 1)) + "Mi"
 
-        if value > 1 * 1024 * 1024 * 1024 - 1:
-            r = str(round(float(value) / 1024 / 1024 / 1024, 1)) + "Gi"
+            if value > 1 * 1024 * 1024 * 1024 - 1:
+                r = str(round(float(value) / 1024 / 1024 / 1024, 1)) + "Gi"
 
-        if value > 1 * 1024 * 1024 * 1024 * 1024 - 1:
-            r = str(round(float(value) / 1024 / 1024 / 1024 / 1024, 1)) + "Ti"
+            if value > 1 * 1024 * 1024 * 1024 * 1024 - 1:
+                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024, 1)) + "Ti"
 
-        if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
-            r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Pi"
+            if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
+                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Pi"
 
-        if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
-            r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Ei"
+            if value > 1 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 - 1:
+                r = str(round(float(value) / 1024 / 1024 / 1024 / 1024 / 1024 / 1024, 1)) + "Ei"
 
     return r
 
@@ -1552,24 +1558,27 @@ def res_mem_bytes_to_str_1024(value: int, raw_units: bool) -> str:
 def res_mem_bytes_to_str_1000(value: int, raw_units: bool) -> str:
     r = str(value)
 
-    if not raw_units:
-        if value > 1 * 1000 - 1:
-            r = str(round(float(value) / 1000, 1)) + "k"
+    if value == 0:
+        r = '0'
+    else:
+        if not raw_units:
+            if value > 1 * 1000 - 1:
+                r = str(round(float(value) / 1000, 1)) + "k"
 
-        if value > 1 * 1000 * 1000 - 1:
-            r = str(round(float(value) / 1000 / 1000, 1)) + "M"
+            if value > 1 * 1000 * 1000 - 1:
+                r = str(round(float(value) / 1000 / 1000, 1)) + "M"
 
-        if value > 1 * 1000 * 1000 * 1000 - 1:
-            r = str(round(float(value) / 1000 / 1000 / 1000, 1)) + "G"
+            if value > 1 * 1000 * 1000 * 1000 - 1:
+                r = str(round(float(value) / 1000 / 1000 / 1000, 1)) + "G"
 
-        if value > 1 * 1000 * 1000 * 1000 * 1000 - 1:
-            r = str(round(float(value) / 1000 / 1000 / 1000 / 1000, 1)) + "T"
+            if value > 1 * 1000 * 1000 * 1000 * 1000 - 1:
+                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000, 1)) + "T"
 
-        if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
-            r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "P"
+            if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
+                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "P"
 
-        if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
-            r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "E"
+            if value > 1 * 1000 * 1000 * 1000 * 1000 * 1000 * 1000 - 1:
+                r = str(round(float(value) / 1000 / 1000 / 1000 / 1000 / 1000 / 1000, 1)) + "E"
 
     return r
 
