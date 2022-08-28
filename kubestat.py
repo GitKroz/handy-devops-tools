@@ -24,6 +24,7 @@ JSON = TypeVar('JSON', Dict, List)
 SYM_LINE = '-'
 
 # https://dev.to/ifenna__/adding-colors-to-bash-scripts-48g4
+COLOR_NONE = ''
 COLOR_RESET = '\033[0m'
 
 COLOR_DEFAULT = '\033[0m'
@@ -62,7 +63,7 @@ COLOR_BOLD_LIGHT_MAGENTA = '\033[1;95m'
 COLOR_BOLD_LIGHT_CYAN = '\033[1;96m'
 COLOR_BOLD_WHITE = '\033[1;97m'
 
-CONFIG = {
+config = {
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'PVCList'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
@@ -376,21 +377,21 @@ class ContainerListItem:
         self.assert_fields()
 
     def assert_fields(self) -> None:
-        global CONFIG
+        global config
 
         for k in self.fields.keys():
-            if k not in CONFIG['fields']:
-                raise AssertionError("Field '{}' is not present in the CONFIG".format(k))
+            if k not in config['fields']:
+                raise AssertionError("Field '{}' is not present in the config".format(k))
 
-        for k in CONFIG['fields']:
+        for k in config['fields']:
             if k not in self.fields:
-                raise AssertionError("Field '{}' (from CONFIG) is not present in the container".format(k))
+                raise AssertionError("Field '{}' (from config) is not present in the container".format(k))
 
     @staticmethod
     def reset_field_widths():
-        global CONFIG
+        global config
 
-        for k in CONFIG['fields'].keys():
+        for k in config['fields'].keys():
             ContainerListItem.fields_width[k] = 0
 
     def generate_keys(self):
@@ -470,22 +471,22 @@ class ContainerListItem:
 
     # Special about dynamic fields: they rely on values and width of main fields
     def get_dynamic_fields(self, raw_units: bool) -> Dict:
-        global CONFIG
+        global config
 
         dynamic_fields: Dict = dict()
 
-        tree_branch_header_indent_width: int = CONFIG['tree_view']['header_indent']
-        pod_indent_width: int = CONFIG['tree_view']['pod_indent']
-        container_indent_width: int = CONFIG['tree_view']['container_indent']
+        tree_branch_header_indent_width: int = config['tree_view']['header_indent']
+        pod_indent_width: int = config['tree_view']['pod_indent']
+        container_indent_width: int = config['tree_view']['container_indent']
         summary_indent_width: int = 4
 
         # Pod
-        columns = CONFIG['tree_view']['pod_branch']
+        columns = config['tree_view']['pod_branch']
         value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_pod'] = (' ' * pod_indent_width) + value
 
         # Container
-        columns = CONFIG['tree_view']['container_branch']
+        columns = config['tree_view']['container_branch']
         value = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=False, make_bold=False)
         dynamic_fields['_tree_branch_container'] = (' ' * container_indent_width) + value
 
@@ -507,16 +508,16 @@ class ContainerListItem:
         return dynamic_fields
 
     def fields_to_table(self, columns: List, raw_units: bool, highlight_changes: bool, make_bold: bool) -> str:
-        global CONFIG
+        global config
 
         template: str = ""
 
-        color_map = CONFIG['colors']['changes']
+        color_map = config['colors']['changes']
         if make_bold:
-            color_map = CONFIG['colors']['changes_bold']
+            color_map = config['colors']['changes_bold']
 
         for column in columns:
-            field_template = '{' + column + ':' + CONFIG['fields'][column]['alignment'] + str(ContainerListItem.fields_width[column]) + '}'
+            field_template = '{' + column + ':' + config['fields'][column]['alignment'] + str(ContainerListItem.fields_width[column]) + '}'
 
             if highlight_changes:
                 # Needed to match both main fields and ref_* fields
@@ -544,35 +545,35 @@ class ContainerListItem:
         return template.format(**formatted_fields)
 
     def print_table(self, raw_units: bool, with_changes: bool):
-        global CONFIG
+        global config
 
         highlight_changes: bool = True
         if self.is_decoration():
             highlight_changes = False
 
-        columns = CONFIG['table_view']['columns_no_diff']
+        columns = config['table_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['table_view']['columns_with_diff']
+            columns = config['table_view']['columns_with_diff']
 
         row = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=highlight_changes, make_bold=False)
 
         print(row)
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        global CONFIG
+        global config
 
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
 
         if prev_container is None or not prev_container.is_same_pod(container=self):
             # Printing additional pod line
 
-            pod_color_map = CONFIG['colors']['changes_tree_pod_branch']
+            pod_color_map = config['colors']['changes_tree_pod_branch']
 
             # First column (Pod)
             tree_branch: str = dynamic_fields['_tree_branch_pod']
 
             # Pod: table row
-            row_template = '{:' + CONFIG['fields']['_tree_branch']['alignment'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
+            row_template = '{:' + config['fields']['_tree_branch']['alignment'] + str(ContainerListItem.fields_width['_tree_branch']) + '}'
 
             row_template = \
                 pod_color_map[self.fields['change']] + \
@@ -587,9 +588,9 @@ class ContainerListItem:
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
 
         # Print row
-        columns = CONFIG['tree_view']['columns_no_diff']
+        columns = config['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_view']['columns_with_diff']
+            columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=False)
 
@@ -615,15 +616,15 @@ class ContainerListLine(ContainerListItem):
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        global CONFIG
+        global config
 
         # First column
         # Already filled with right value
 
         # Print row
-        columns = CONFIG['tree_view']['columns_no_diff']
+        columns = config['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_view']['columns_with_diff']
+            columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -638,25 +639,25 @@ class ContainerListHeader(ContainerListItem):
         super().__init__()
 
     def reset(self):
-        global CONFIG
+        global config
 
-        for k in CONFIG['fields']:
-            self.fields[k] = CONFIG['fields'][k]['header']
+        for k in config['fields']:
+            self.fields[k] = config['fields'][k]['header']
 
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
     def print_tree(self, raw_units: bool, prev_container, with_changes: bool):
-        global CONFIG
+        global config
 
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields(raw_units=raw_units)
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
         # Print row
-        columns = CONFIG['tree_view']['columns_no_diff']
+        columns = config['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_view']['columns_with_diff']
+            columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=True, highlight_changes=False, make_bold=True)
 
@@ -678,9 +679,9 @@ class ContainerListSummary(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Print row
-        columns = CONFIG['tree_view']['columns_no_diff']
+        columns = config['tree_view']['columns_no_diff']
         if with_changes:
-            columns = CONFIG['tree_view']['columns_with_diff']
+            columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, raw_units=raw_units, highlight_changes=True, make_bold=True)
 
@@ -971,7 +972,7 @@ class KubernetesResourceSet:
     def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
         summary = list()
 
-        for summary_cfg in CONFIG['summary']:
+        for summary_cfg in config['summary']:
             criteria: ContainerListItem = parse_filter_expression(criteria=summary_cfg['filter'])
             filtered_subset: KubernetesResourceSet = self.filter(criteria=criteria, inverse=False)
             summary_item = filtered_subset.get_resources_total(
@@ -985,7 +986,7 @@ class KubernetesResourceSet:
 
     def print(self, output_format: str, raw_units: bool, with_changes: bool):
         global logger
-        global CONFIG
+        global config
 
         # Columns width (not needed for CSV)
         self.set_optimal_field_width(raw_units)
@@ -1470,6 +1471,9 @@ def parse_args():
         formatter_class=argparse.RawTextHelpFormatter
     )
 
+    parser.add_argument('--no-colors', dest='no_colors', action="store_true",
+                        help="Disable colors")
+
     filter_args_group = parser.add_mutually_exclusive_group(required=False)
     filter_args_group.add_argument('-f', '--filter', dest='filter_criteria', type=str,
                                    help='Match only pods/containers matching criteria. Refer below for details.')
@@ -1660,6 +1664,19 @@ def res_mem_bytes_to_str_1000(value: int, raw_units: bool) -> str:
     return r
 
 
+def cfg_disable_colors() -> None:
+    global config
+    global COLOR_NONE, COLOR_RESET, COLOR_BOLD_DEFAULT
+
+    category: Dict
+    for category_name, category in config['colors'].items():
+        for k, v in category.items():
+            category[k] = COLOR_NONE
+
+    COLOR_BOLD_DEFAULT = COLOR_NONE
+    COLOR_RESET = COLOR_NONE
+
+
 ################################################################################
 # Main
 ################################################################################
@@ -1668,6 +1685,9 @@ def main():
     setup_logging()
 
     parse_args()
+
+    if args.no_colors:
+        cfg_disable_colors()
 
     all_resources = KubernetesResourceSet()
     ref_resources = KubernetesResourceSet()
