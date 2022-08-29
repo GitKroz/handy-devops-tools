@@ -1528,14 +1528,6 @@ def parse_args():
         
         Examples:
         
-        Filter all ReplicaSets:
-        -f kind=Replica
-        -f workloadType=Replica
-        
-        Filter all ReplicaSets and StatefulSets
-        -f kind=Replica\\|State
-        -f kind='Replica|State'
-        
         Filter all pods having 'abc' in the name:
         -f abc
         -f pod=abc
@@ -1544,11 +1536,20 @@ def parse_args():
         Filter all pods having '-abc' in the name (pattern started with '-'):
         -f (-abc)
         
+        Filter all ReplicaSets:
+        -f kind=Replica
+        -f workloadType=Replica
+        
+        Filter all ReplicaSets and StatefulSets
+        -f kind=Replica\\|State
+        -f kind='Replica|State'
+        
         Filter all pods NOT having 'abc' in the name:
         -f 'pod=^((?!abc).)*$'
+        -F 'pod=abc'
         
-        Filter all application (non-init) containers in all ReplicaSets with "log" in pod name:
-        -f log,kind=R,type=reg
+        Filter all regular (non-init) containers in all ReplicaSets with "abc" in pod name:
+        -f abc,kind=R,type=reg
         """
 
     parser = argparse.ArgumentParser(
