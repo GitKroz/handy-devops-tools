@@ -519,13 +519,13 @@ class ContainerListItem:
         # Header - relevant only for header items
         dynamic_fields['_tree_branch_header'] = (' ' * tree_branch_header_indent_width) + self.fields['_tree_branch']
 
-        # Combined tree branch - needed to calculate field width
-        dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
-            len(dynamic_fields['_tree_branch_pod']),
-            len(dynamic_fields['_tree_branch_container']),
-            len(dynamic_fields['_tree_branch_summary']),
-            len(dynamic_fields['_tree_branch_header'])
-        )
+        # # Combined tree branch - needed to calculate field width
+        # dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
+        #     len(dynamic_fields['_tree_branch_pod']),
+        #     len(dynamic_fields['_tree_branch_container']),
+        #     len(dynamic_fields['_tree_branch_summary']),
+        #     len(dynamic_fields['_tree_branch_header'])
+        # )
 
         # Result
         return dynamic_fields
@@ -979,18 +979,33 @@ class KubernetesResourceSet:
     def set_optimal_field_width(self) -> None:
         ContainerListItem.reset_field_widths()
 
-        summary = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
+        header = ContainerListHeader()
+        summary_items = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
 
-        for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
+        for container in self.containers + [header] + summary_items:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_formatted_fields(raw_units=False)
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
         # Special about dynamic fields: they rely on values and width of main fields
-        for container in self.containers + [ContainerListHeader()] + summary:  # Taking maximum length of values of all containers plus header
+        for container in self.containers:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_dynamic_fields()
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
+
+        for si in summary_items:
+            dynamic_fields: Dict = si.get_dynamic_fields()
+            ContainerListItem.fields_width['_tree_branch'] = max(
+                ContainerListItem.fields_width['_tree_branch'],
+                len(dynamic_fields['_tree_branch_summary'])
+            )
+
+        ContainerListItem.fields_width['_tree_branch'] = max(
+            ContainerListItem.fields_width['_tree_branch'],
+            ContainerListItem.fields_width['_tree_branch_pod'],
+            ContainerListItem.fields_width['_tree_branch_container'],
+            len(header.fields['_tree_branch'])
+        )
 
     def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
         summary = list()
