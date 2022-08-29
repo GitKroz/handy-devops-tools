@@ -66,12 +66,12 @@ COLOR_BOLD_WHITE = '\033[1;97m'
 config = {
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
-        'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields']
+        'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
     },
     'tree_view': {
         # Make sure first field is '_tree_branch'
         'columns_no_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
-        'columns_with_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests', 'changedFields'],
+        'columns_with_diff': ['_tree_branch', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests'],
 
         'pod_branch': ['podIndex', 'workloadType', 'podName'],
         'container_branch': ['type', 'name'],
@@ -120,9 +120,9 @@ config = {
     ],
     'units': '',  # Will be set by argparse
     'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
-        ['cat', '{}']
-        # ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json'],
-        # ['kubectl', '--namespace={}', 'get', 'pvc', '--output', 'json']
+        # ['cat', '{}']
+        ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json'],
+        ['kubectl', '--namespace={}', 'get', 'pvc', '--output', 'json']
 
     ],
     'fields': {
