@@ -327,6 +327,8 @@ class ContainerListItem:
 
     sym_column_separator: str
 
+    line_width_before_scaling: int = 0
+
     # Static variable
     fields_width: Dict = {}
 
@@ -689,7 +691,9 @@ class ContainerListLine(ContainerListItem):
 
         # Special: printing width
         if config['max_output_width'] != 0:
-            width_str = ' (width: {}/{}) '.format(str(len(row)), str(config['max_output_width']))
+            width_str = ' (width: {}->{}/{}) '.format(str(ContainerListItem.line_width_before_scaling),
+                                                      str(len(row)),
+                                                      str(config['max_output_width']))
             span = len(width_str)
             start = row.find(SYM_LINE) + 3  # May not be first symbol because of escape combination for colors
             row = row[:start] + width_str + row[(start + span):]
@@ -1028,8 +1032,8 @@ class KubernetesResourceSet:
 
         return r
 
-    def scale_optimal_field_width(self, scalable_fields: List, sample_line: str) -> None:
-        actual_width = len(sample_line)
+    def scale_optimal_field_width(self, scalable_fields: List) -> None:
+        actual_width = ContainerListItem.line_width_before_scaling
 
         actual_variable_width = 0
         for field in scalable_fields:
@@ -1096,14 +1100,18 @@ class KubernetesResourceSet:
 
         if config['max_output_width'] > 0:  # 0 means do not scale
             if view_mode == 'table':
+                sample_line = header.make_table_lines(with_changes=config['show_diff'])[0]
+                ContainerListItem.line_width_before_scaling = len(sample_line)
+
                 self.scale_optimal_field_width(
-                    scalable_fields=['podName', 'name'],
-                    sample_line=header.make_table_lines(with_changes=config['show_diff'])[0]
+                    scalable_fields=['podName', 'name']
                 )
             elif view_mode == 'tree':
+                sample_line = header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0]
+                ContainerListItem.line_width_before_scaling = len(sample_line)
+
                 self.scale_optimal_field_width(
-                    scalable_fields=['_tree_branch'],
-                    sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0]
+                    scalable_fields=['_tree_branch']
                 )
             else:
                 raise RuntimeError("Unexpected view mode: {}".format(view_mode))
