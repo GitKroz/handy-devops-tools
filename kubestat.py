@@ -162,7 +162,8 @@ config = {
         },
         'podName': {
             'header': 'Pod',
-            'alignment': '<'
+            'alignment': '<',
+            'min_width': 10
         },
 
         'key': {
@@ -183,7 +184,8 @@ config = {
         },
         'name': {
             'header': 'Container',
-            'alignment': '<'
+            'alignment': '<',
+            'min_width': 10
         },
 
         'CPURequests': {
@@ -283,6 +285,7 @@ config = {
         '_tree_branch': {
             'header': 'Resource',
             'alignment': '<',  # Combined
+            'min_width': 20
         },
         '_tree_branch_pod': {
             'header': None,  # Not used
@@ -1016,7 +1019,7 @@ class KubernetesResourceSet:
 
         return r
 
-    def scale_optimal_field_width(self, scalable_fields: List, sample_line: str, min_field_width: int) -> None:
+    def scale_optimal_field_width(self, scalable_fields: List, sample_line: str) -> None:
         actual_scalable_width = 0
         for field in scalable_fields:
             actual_scalable_width = actual_scalable_width + ContainerListItem.fields_width[field]
@@ -1032,8 +1035,12 @@ class KubernetesResourceSet:
 
         for field in scalable_fields:
             ContainerListItem.fields_width[field] = int(ContainerListItem.fields_width[field] * ratio)
-            if ContainerListItem.fields_width[field] < min_field_width:
-                ContainerListItem.fields_width[field] = min_field_width
+
+            if 'min_width' in config['fields'][field]:
+                ContainerListItem.fields_width[field] = max(
+                    ContainerListItem.fields_width[field],
+                    config['fields'][field]['min_width']
+                )
 
     def set_optimal_field_width(self) -> None:
         global config
@@ -1079,13 +1086,11 @@ class KubernetesResourceSet:
         if config['max_output_width'] > 0:  # 0 means do not scale
             self.scale_optimal_field_width(
                 scalable_fields=['podName', 'name'],
-                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0],
-                min_field_width=10  # TODO: To config
+                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0]
             )
             self.scale_optimal_field_width(
                 scalable_fields=['_tree_branch'],
-                sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0],
-                min_field_width=20  # TODO: To config
+                sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0]
             )
 
     def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
