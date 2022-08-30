@@ -1066,7 +1066,9 @@ class KubernetesResourceSet:
 
         # Considering max_output_width
         if config['max_output_width'] < 0:  # Get terminal size
-            term_rows, term_cols = shutil.get_terminal_size()
+            term_cols, term_rows = shutil.get_terminal_size((999, 999))
+            if term_cols == 999:  # Failure of autodetection
+                term_cols = 0  # Unlimited
             config['max_output_width'] = term_cols
 
         if config['max_output_width'] > 0:  # 0 means do not scale
