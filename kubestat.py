@@ -1581,81 +1581,6 @@ def setup_logging():
     logger.addHandler(syslog)
 
 
-def parse_args():
-    global args
-
-    epilog = \
-        """
-        Example:
-        
-        ./kubestat.py -o table -r ref_pods.json -r rev_pvcs.json pods.json pvcs.json
-        
-        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, name (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
-        
-        Examples:
-        
-        Filter all pods having 'abc' in the name:
-        -f abc
-        -f pod=abc
-        -f podName=abc
-        
-        Filter all pods having '-abc' in the name (pattern started with '-'):
-        -f (-abc)
-        
-        Filter all ReplicaSets:
-        -f kind=Replica
-        -f workloadType=Replica
-        
-        Filter all ReplicaSets and StatefulSets
-        -f kind=Replica\\|State
-        -f kind='Replica|State'
-        
-        Filter all pods NOT having 'abc' in the name:
-        -f 'pod=^((?!abc).)*$'
-        -F 'pod=abc'
-        
-        Filter all regular (non-init) containers in all ReplicaSets with "abc" in pod name:
-        -f abc,kind=R,type=reg
-        """
-
-    parser = argparse.ArgumentParser(
-        description='Provides statistics for resources from `kubectl describe pods -o json`',
-        epilog=epilog,
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-
-    parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
-                        help='Write dump to the file')
-    parser.add_argument('--color', dest='colors', action="store_true",
-                        help="Enable colors")
-
-    filter_args_group = parser.add_mutually_exclusive_group(required=False)
-    filter_args_group.add_argument('-f', '--filter', dest='filter_criteria', type=str,
-                                   help='Match only pods/containers matching criteria. Refer below for details.')
-    filter_args_group.add_argument('-F', '--filter-not', dest='inverse_filter_criteria', type=str,
-                                   help='Match only pods/containers NOT matching criteria. Refer below for details.')
-
-    parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree', choices=['tree', 'table', 'csv'],
-                        help='Specify output format')
-    parser.add_argument('-r', '--reference', metavar='FILE', dest='references', type=str, action='append',
-                        help='Reference file(s) or @namespace to compare with')
-    parser.add_argument('-u', '--units', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
-                        help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
-    parser.add_argument('-w', '--width', dest='max_output_width', type=str, default="0",
-                        help="Set maximum output width (desired)")
-    parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
-                        help='Input file(s) or @namespace')
-
-    # Show help if no arguments supplied
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(0)
-
-    parser.parse_args()
-
-    args = parser.parse_args()
-
-
 def parse_filter_expression(criteria: str) -> ContainerListItem:
     r = ContainerListItem()
 
@@ -1835,6 +1760,81 @@ def write_dump(filename: str):
     content = json.dumps(dump, indent=2)
     with open(file=filename, mode='w') as file:
         file.write(content)
+
+
+def parse_args():
+    global args
+
+    epilog = \
+        """
+        Example:
+        
+        ./kubestat.py -o table -r ref_pods.json -r rev_pvcs.json pods.json pvcs.json
+        
+        Filter criteria is a comma-separated list of 'field=regex' tokens. Fields can be specified as full names or as aliases: workloadType (kind), podName (pod), type, name (container). If field is not specified, podName is assumed. Regular expressions are case-sensitive.
+        
+        Examples:
+        
+        Filter all pods having 'abc' in the name:
+        -f abc
+        -f pod=abc
+        -f podName=abc
+        
+        Filter all pods having '-abc' in the name (pattern started with '-'):
+        -f (-abc)
+        
+        Filter all ReplicaSets:
+        -f kind=Replica
+        -f workloadType=Replica
+        
+        Filter all ReplicaSets and StatefulSets
+        -f kind=Replica\\|State
+        -f kind='Replica|State'
+        
+        Filter all pods NOT having 'abc' in the name:
+        -f 'pod=^((?!abc).)*$'
+        -F 'pod=abc'
+        
+        Filter all regular (non-init) containers in all ReplicaSets with "abc" in pod name:
+        -f abc,kind=R,type=reg
+        """
+
+    parser = argparse.ArgumentParser(
+        description='Provides statistics for resources from `kubectl describe pods -o json`',
+        epilog=epilog,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
+                        help='Write dump to the file')
+    parser.add_argument('--color', dest='colors', action="store_true",
+                        help="Enable colors")
+
+    filter_args_group = parser.add_mutually_exclusive_group(required=False)
+    filter_args_group.add_argument('-f', '--filter', dest='filter_criteria', type=str,
+                                   help='Match only pods/containers matching criteria. Refer below for details.')
+    filter_args_group.add_argument('-F', '--filter-not', dest='inverse_filter_criteria', type=str,
+                                   help='Match only pods/containers NOT matching criteria. Refer below for details.')
+
+    parser.add_argument('-o', '--output', dest='output_format', type=str, default='tree', choices=['tree', 'table', 'csv'],
+                        help='Specify output format')
+    parser.add_argument('-r', '--reference', metavar='FILE', dest='references', type=str, action='append',
+                        help='Reference file(s) or @namespace to compare with')
+    parser.add_argument('-u', '--units', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
+                        help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
+    parser.add_argument('-w', '--width', dest='max_output_width', type=str, default="0",
+                        help="Set maximum output width (desired)")
+    parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
+                        help='Input file(s) or @namespace')
+
+    # Show help if no arguments supplied
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    parser.parse_args()
+
+    args = parser.parse_args()
 
 
 ################################################################################
