@@ -415,7 +415,9 @@ class ContainerListItem:
     def generate_keys(self):
         self.fields['appKey'] = self.fields['appName']
         self.fields['podKey'] = self.fields['appKey'] + '/' + str(self.fields['podLocalIndex'])
-        self.fields['key'] = self.fields['podKey'] + '/' + self.fields['name']
+
+        # Note: 'type' is added to the key for sorting (which uses key), so that init containers would go first
+        self.fields['key'] = self.fields['podKey'] + '/' + self.fields['type'] + '/' + self.fields['name']
 
     def has_pod(self) -> bool:
         return self.fields["podName"] != ""
