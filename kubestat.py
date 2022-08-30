@@ -1079,7 +1079,7 @@ class KubernetesResourceSet:
             )
             self.scale_optimal_field_width(
                 scalable_fields=['_tree_branch'],
-                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0],
+                sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0],
                 min_field_width=20  # TODO: To config
             )
 
