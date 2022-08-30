@@ -322,7 +322,7 @@ dump: Dict = {
 class ContainerListItem:
     fields: OrderedDict = OrderedDict()  # Preserving elements order is important for exporting CSV
 
-    column_separator: str
+    sym_column_separator: str
 
     # Static variable
     fields_width: Dict = {}
@@ -561,7 +561,10 @@ class ContainerListItem:
                 else:
                     pass
 
-            template = template + field_template + self.sym_column_separator
+            if make_bold:
+                template = template + field_template + COLOR_BOLD_DEFAULT + self.sym_column_separator + COLOR_RESET
+            else:
+                template = template + field_template + self.sym_column_separator
 
         formatted_fields = self.get_formatted_fields(raw_units=False)
 
