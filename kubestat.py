@@ -12,6 +12,7 @@ import copy
 import re
 import subprocess
 import io
+import shutil
 
 from collections import OrderedDict
 
@@ -66,7 +67,7 @@ COLOR_BOLD_WHITE = '\033[1;97m'
 
 config = {
     'units': '',  # Will be set by argparse
-    'max_output_width': 0,
+    'max_output_width': 0,  # Will be set by argparse
     'show_diff': False,  # Filled based on inputs. Selects variant of table view/tree view
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
@@ -1064,7 +1065,11 @@ class KubernetesResourceSet:
         )
 
         # Considering max_output_width
-        if config['max_output_width'] > 0:
+        if config['max_output_width'] < 0:  # Get terminal size
+            term_rows, term_cols = shutil.get_terminal_size()
+            config['max_output_width'] = term_cols
+
+        if config['max_output_width'] > 0:  # 0 means do not scale
             self.scale_optimal_field_width(
                 scalable_fields=['podName', 'name'],
                 sample_line=header.make_table_lines(with_changes=config['show_diff'])[0],
@@ -1822,8 +1827,8 @@ def parse_args():
                         help='Reference file(s) or @namespace to compare with')
     parser.add_argument('-u', '--units', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
                         help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
-    parser.add_argument('-w', '--width', dest='max_output_width', type=str, default="0",
-                        help="Set maximum output width (desired)")
+    parser.add_argument('-w', '--width', dest='max_output_width', type=str, default="-1",
+                        help="Set desired maximum output width. -1 (terminal width, default), 0 (unlimited), N (specific width)")
     parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
                         help='Input file(s) or @namespace')
 
