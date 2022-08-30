@@ -1,6 +1,8 @@
 kubestat.py
 * Update readme.md
-* Consider terminal size
+* Max output width: consider terminal size
+* Max output width: Make configurable minimum field width, which fields are scalable; consider templates (column list) for table and tree
+* Max output width: In arguments allow setting per-field width
 * Sort container so that init container would go first
 * Bug: not all horizontal lines are bold
 * Add context variable where relevant

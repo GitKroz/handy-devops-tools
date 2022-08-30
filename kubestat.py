@@ -65,6 +65,9 @@ COLOR_BOLD_LIGHT_CYAN = '\033[1;96m'
 COLOR_BOLD_WHITE = '\033[1;97m'
 
 config = {
+    'units': '',  # Will be set by argparse
+    'max_output_width': 0,
+    'show_diff': False,  # Filled based on inputs. Selects variant of table view/tree view
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
@@ -119,7 +122,6 @@ config = {
             'container_text': '{filtered_containers}/{all_containers} non-init containers'
         }
     ],
-    'units': '',  # Will be set by argparse
     'cluster_cmd': [  # List of argv: first element is command, other - arguments; '{}; - namespace
         # ['cat', '{}']
         ['kubectl', '--namespace={}', 'get', 'pods', '--output', 'json'],
@@ -533,7 +535,9 @@ class ContainerListItem:
             color_map = config['colors']['changes_bold']
 
         for column in columns:
-            field_template = '{' + column + ':' + config['fields'][column]['alignment'] + str(ContainerListItem.fields_width[column]) + '}'
+            min_width = ContainerListItem.fields_width[column]
+            max_width = ContainerListItem.fields_width[column]  # Note: this requires that all values were strings
+            field_template = '{' + column + ':' + config['fields'][column]['alignment'] + str(min_width) + '.' + str(max_width) + '}'
 
             if highlight_changes:
                 # Needed to match both main fields and ref_* fields
@@ -1006,18 +1010,40 @@ class KubernetesResourceSet:
 
         return r
 
+    def scale_optimal_field_width(self, scalable_fields: List, sample_line: str, min_field_width: int) -> None:
+        actual_scalable_width = 0
+        for field in scalable_fields:
+            actual_scalable_width = actual_scalable_width + ContainerListItem.fields_width[field]
+
+        actual_fixed_width = len(sample_line) - actual_scalable_width
+
+        target_scalable_width = config['max_output_width'] - actual_fixed_width
+
+        ratio: float = float(target_scalable_width) / float(actual_scalable_width)
+
+        if ratio > 1.0:
+            ratio = 1.0
+
+        for field in scalable_fields:
+            ContainerListItem.fields_width[field] = int(ContainerListItem.fields_width[field] * ratio)
+            if ContainerListItem.fields_width[field] < min_field_width:
+                ContainerListItem.fields_width[field] = min_field_width
+
     def set_optimal_field_width(self) -> None:
+        global config
+
         ContainerListItem.reset_field_widths()
 
         header = ContainerListHeader()
         summary_items = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
 
+        # Static fields
         for container in self.containers + [header] + summary_items:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_formatted_fields(raw_units=False)
             for k, v in str_fields.items():
                 ContainerListItem.fields_width[k] = max(ContainerListItem.fields_width[k], len(v))
 
-        # Special about dynamic fields: they rely on values and width of main fields
+        # Dynamic fields: they rely on values and width of static fields
         for container in self.containers:  # Taking maximum length of values of all containers plus header
             str_fields = container.get_dynamic_fields()
             for k, v in str_fields.items():
@@ -1036,6 +1062,19 @@ class KubernetesResourceSet:
             ContainerListItem.fields_width['_tree_branch_container'],
             len(header.fields['_tree_branch'])
         )
+
+        # Considering max_output_width
+        if config['max_output_width'] > 0:
+            self.scale_optimal_field_width(
+                scalable_fields=['podName', 'name'],
+                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0],
+                min_field_width=10  # TODO: To config
+            )
+            self.scale_optimal_field_width(
+                scalable_fields=['_tree_branch'],
+                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0],
+                min_field_width=20  # TODO: To config
+            )
 
     def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
         summary = list()
@@ -1076,7 +1115,6 @@ class KubernetesResourceSet:
             raise RuntimeError("Invalid output format: {}".format(output_format))
 
     def print_table(self, with_changes: bool, summary: Optional[List] = False):
-
         ContainerListHeader().print_table(with_changes=with_changes)
         ContainerListLine().print_table(with_changes=with_changes)
 
@@ -1089,8 +1127,6 @@ class KubernetesResourceSet:
             summary_item.print_table(with_changes=with_changes)
 
     def print_tree(self, with_changes: bool, summary: Optional[List] = False):
-        self.set_optimal_field_width()
-
         ContainerListHeader().print_tree(prev_container=None, with_changes=with_changes)
         ContainerListLine().print_tree(prev_container=None, with_changes=with_changes)
 
@@ -1590,8 +1626,8 @@ def parse_args():
 
     parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
                         help='Write dump to the file')
-    parser.add_argument('-c', '--colors', dest='colors', action="store_true",
-                        help="Disable colors")
+    parser.add_argument('--color', dest='colors', action="store_true",
+                        help="Enable colors")
 
     filter_args_group = parser.add_mutually_exclusive_group(required=False)
     filter_args_group.add_argument('-f', '--filter', dest='filter_criteria', type=str,
@@ -1605,6 +1641,8 @@ def parse_args():
                         help='Reference file(s) or @namespace to compare with')
     parser.add_argument('-u', '--units', dest='units', type=str, default='bin', choices=['bin', 'si', 'raw'],
                         help="Units of measure suffixes to use: bin (default) - 1024 based (ki, Mi, Gi), si - 1000 based (k, M, G)', raw - do not use suffixes (also for CPU)")
+    parser.add_argument('-w', '--width', dest='max_output_width', type=str, default="0",
+                        help="Set maximum output width (desired)")
     parser.add_argument(metavar="FILE", dest='inputs', type=str, nargs='+',
                         help='Input file(s) or @namespace')
 
@@ -1815,6 +1853,7 @@ def main():
         cfg_disable_colors()
 
     config['units'] = args.units
+    config['max_output_width'] = int(args.max_output_width)
 
     all_resources = KubernetesResourceSet()
     ref_resources = KubernetesResourceSet()
@@ -1828,6 +1867,8 @@ def main():
             for source in args.references:
                 ref_resources.load(source=source, role='reference')
                 with_changes = True
+
+        config['show_diff'] = with_changes  # TODO: Replace all 'with_diff' to using this config variable
 
         if with_changes:
             all_resources.compare(ref_resources)
