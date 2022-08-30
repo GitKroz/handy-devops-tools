@@ -685,7 +685,16 @@ class ContainerListLine(ContainerListItem):
         if with_changes:
             columns = config['tree_view']['columns_with_diff']
 
-        row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=True)
+        row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=False)
+
+        # Special: printing width
+        if config['max_output_width'] != 0:
+            width_str = ' (width: {}/{}) '.format(str(len(row)), str(config['max_output_width']))
+            span = len(width_str)
+            start = row.find(SYM_LINE) + 3  # May not be first symbol because of escape combination for colors
+            row = row[:start] + width_str + row[(start + span):]
+
+        row = COLOR_BOLD_DEFAULT + row + COLOR_RESET
 
         r.append(row)
         return r
