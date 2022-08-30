@@ -1029,15 +1029,17 @@ class KubernetesResourceSet:
         return r
 
     def scale_optimal_field_width(self, scalable_fields: List, sample_line: str) -> None:
-        actual_scalable_width = 0
+        actual_width = len(sample_line)
+
+        actual_variable_width = 0
         for field in scalable_fields:
-            actual_scalable_width = actual_scalable_width + ContainerListItem.fields_width[field]
+            actual_variable_width = actual_variable_width + ContainerListItem.fields_width[field]
 
-        actual_fixed_width = len(sample_line) - actual_scalable_width
+        actual_fixed_width = actual_width - actual_variable_width
 
-        target_scalable_width = config['max_output_width'] - actual_fixed_width
+        target_variable_width = config['max_output_width'] - actual_fixed_width
 
-        ratio: float = float(target_scalable_width) / float(actual_scalable_width)
+        ratio: float = float(target_variable_width) / float(actual_variable_width)
 
         if ratio > 1.0:
             ratio = 1.0
@@ -1051,7 +1053,7 @@ class KubernetesResourceSet:
                     config['fields'][field]['min_width']
                 )
 
-    def set_optimal_field_width(self) -> None:
+    def set_optimal_field_width(self, view_mode: str) -> None:
         global config
 
         ContainerListItem.reset_field_widths()
@@ -1093,14 +1095,18 @@ class KubernetesResourceSet:
             config['max_output_width'] = term_cols
 
         if config['max_output_width'] > 0:  # 0 means do not scale
-            self.scale_optimal_field_width(
-                scalable_fields=['podName', 'name'],
-                sample_line=header.make_table_lines(with_changes=config['show_diff'])[0]
-            )
-            self.scale_optimal_field_width(
-                scalable_fields=['_tree_branch'],
-                sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0]
-            )
+            if view_mode == 'table':
+                self.scale_optimal_field_width(
+                    scalable_fields=['podName', 'name'],
+                    sample_line=header.make_table_lines(with_changes=config['show_diff'])[0]
+                )
+            elif view_mode == 'tree':
+                self.scale_optimal_field_width(
+                    scalable_fields=['_tree_branch'],
+                    sample_line=header.make_tree_lines(prev_container=None, with_changes=config['show_diff'])[0]
+                )
+            else:
+                raise RuntimeError("Unexpected view mode: {}".format(view_mode))
 
     def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
         summary = list()
@@ -1121,18 +1127,17 @@ class KubernetesResourceSet:
         global logger
         global config
 
-        # Columns width (not needed for CSV)
-        self.set_optimal_field_width()
-
         # Summary lines
         summary = self.make_summary_items(with_changes=with_changes)
 
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
+            self.set_optimal_field_width(view_mode='table')
             self.print_table(with_changes=with_changes, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
+            self.set_optimal_field_width(view_mode='tree')
             self.print_tree(with_changes=with_changes, summary=summary)
         elif output_format == "csv":
             logger.debug("Output format: csv")
