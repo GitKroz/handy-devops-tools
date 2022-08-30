@@ -11,6 +11,7 @@ import csv
 import copy
 import re
 import subprocess
+import io
 
 from collections import OrderedDict
 
@@ -519,14 +520,6 @@ class ContainerListItem:
         # Header - relevant only for header items
         dynamic_fields['_tree_branch_header'] = (' ' * tree_branch_header_indent_width) + self.fields['_tree_branch']
 
-        # # Combined tree branch - needed to calculate field width
-        # dynamic_fields['_tree_branch'] = '*' * max(  # Any symbol
-        #     len(dynamic_fields['_tree_branch_pod']),
-        #     len(dynamic_fields['_tree_branch_container']),
-        #     len(dynamic_fields['_tree_branch_summary']),
-        #     len(dynamic_fields['_tree_branch_header'])
-        # )
-
         # Result
         return dynamic_fields
 
@@ -567,8 +560,10 @@ class ContainerListItem:
 
         return template.format(**formatted_fields)
 
-    def print_table(self, with_changes: bool):
+    def make_table_lines(self, with_changes: bool) -> List[str]:
         global config
+
+        r = list()
 
         highlight_changes: bool = True
         if self.is_decoration():
@@ -580,10 +575,18 @@ class ContainerListItem:
 
         row = self.fields_to_table(columns=columns, highlight_changes=highlight_changes, make_bold=False)
 
-        print(row)
+        r.append(row)
+        return r
 
-    def print_tree(self, prev_container, with_changes: bool):
+    def print_table(self, with_changes: bool) -> None:
+        lines = self.make_table_lines(with_changes=with_changes)
+        for line in lines:
+            print(line)
+
+    def make_tree_lines(self, prev_container, with_changes: bool) -> List[str]:
         global config
+
+        r = list()
 
         dynamic_fields: Dict = self.get_dynamic_fields()
 
@@ -605,7 +608,7 @@ class ContainerListItem:
 
             row = row_template.format(tree_branch)
 
-            print(row)
+            r.append(row)
 
         # First column (container)
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
@@ -617,13 +620,31 @@ class ContainerListItem:
 
         row: str = self.fields_to_table(columns=columns, highlight_changes=True, make_bold=False)
 
-        print(row)
+        r.append(row)
+        return r
 
-    def print_csv(self):
-        csv_writer = csv.writer(sys.stdout, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    def print_tree(self, prev_container, with_changes: bool) -> None:
+        lines = self.make_tree_lines(prev_container=prev_container, with_changes=with_changes)
+        for line in lines:
+            print(line)
+
+    def make_csv_lines(self) -> List[str]:
+        r = list()
+
+        output = io.StringIO()
+
+        csv_writer = csv.writer(output, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
         values = self.get_formatted_fields(raw_units=True)
         csv_writer.writerow(values.values())
+
+        r.append(output.getvalue().strip())
+        return r
+
+    def print_csv(self) -> None:
+        lines = self.make_csv_lines()
+        for line in lines:
+            print(line)
 
 
 class ContainerListLine(ContainerListItem):
@@ -638,8 +659,10 @@ class ContainerListLine(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def print_tree(self, prev_container, with_changes: bool):
+    def make_tree_lines(self, prev_container, with_changes: bool) -> List[str]:
         global config
+
+        r = list()
 
         # First column
         # Already filled with right value
@@ -651,9 +674,10 @@ class ContainerListLine(ContainerListItem):
 
         row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=True)
 
-        print(row)
+        r.append(row)
+        return r
 
-    def print_csv(self):
+    def make_csv_lines(self) -> List[str]:
         raise RuntimeError('ContainerListLine is not expected to be exported to CSV')
 
 
@@ -670,8 +694,10 @@ class ContainerListHeader(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def print_tree(self, prev_container, with_changes: bool):
+    def make_tree_lines(self, prev_container, with_changes: bool) -> List[str]:
         global config
+
+        r = list()
 
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields()
@@ -684,19 +710,22 @@ class ContainerListHeader(ContainerListItem):
 
         row: str = self.fields_to_table(columns=columns, highlight_changes=False, make_bold=True)
 
-        print(row)
+        r.append(row)
+        return r
 
-    def print_csv(self):
+    def make_csv_lines(self) -> List[str]:
         for key in self.fields.keys():
             self.fields[key] = key
-        super().print_csv()
+        return super().make_csv_lines()
 
 
 class ContainerListSummary(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-    def print_tree(self, prev_container, with_changes: bool):
+    def make_tree_lines(self, prev_container, with_changes: bool) -> List[str]:
+        r = list()
+
         # First column
         dynamic_fields: Dict = self.get_dynamic_fields()
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
@@ -708,9 +737,10 @@ class ContainerListSummary(ContainerListItem):
 
         row: str = self.fields_to_table(columns=columns, highlight_changes=True, make_bold=True)
 
-        print(row)
+        r.append(row)
+        return r
 
-    def print_csv(self):
+    def make_csv_lines(self):
         raise RuntimeError('ContainerListSummary is not expected to be exported to CSV')
 
 
