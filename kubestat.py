@@ -608,7 +608,7 @@ class ContainerListItem:
         for line in lines:
             print(line)
 
-    def make_tree_lines(self, with_color: bool, prev_container, with_changes: bool) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -649,7 +649,7 @@ class ContainerListItem:
         return r
 
     def print_tree(self, with_color: bool, prev_container, with_changes: bool) -> None:
-        lines = self.make_tree_lines(with_color=with_color, prev_container=prev_container, with_changes=with_changes)
+        lines = self.make_tree_lines(with_color=with_color, with_changes=with_changes, prev_container=prev_container)
         for line in lines:
             print(line)
 
@@ -684,7 +684,7 @@ class ContainerListLine(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def make_tree_lines(self, with_color: bool, prev_container, with_changes: bool) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -731,7 +731,7 @@ class ContainerListHeader(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def make_tree_lines(self, with_color: bool, prev_container, with_changes: bool) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -760,7 +760,7 @@ class ContainerListSummary(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-    def make_tree_lines(self, with_color: bool, prev_container, with_changes: bool) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
         r = list()
 
         # First column
@@ -1118,7 +1118,7 @@ class KubernetesResourceSet:
                     scalable_fields=['podName', 'name']
                 )
             elif view_mode == 'tree':
-                sample_line = header.make_tree_lines(with_color=False, prev_container=None, with_changes=config['show_diff'])[0]
+                sample_line = header.make_tree_lines(with_color=False, with_changes=config['show_diff'], prev_container=None)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
                 self.scale_optimal_field_width(
