@@ -647,7 +647,7 @@ class ContainerListItem:
         r.append(row)
         return r
 
-    def print_tree(self, with_color: bool, prev_container, with_diff: bool) -> None:
+    def print_tree(self, with_color: bool, with_diff: bool, prev_container) -> None:
         lines = self.make_tree_lines(with_color=with_color, with_diff=with_diff, prev_container=prev_container)
         for line in lines:
             print(line)
@@ -1176,18 +1176,18 @@ class KubernetesResourceSet:
             summary_item.print_table(with_color=with_color, with_diff=with_diff)
 
     def print_tree(self, with_color: bool, with_diff: bool, summary: Optional[List] = False):
-        ContainerListHeader().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
-        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
+        ContainerListHeader().print_tree(with_color=with_color, with_diff=with_diff, prev_container=None)
+        ContainerListLine().print_tree(with_color=with_color, with_diff=with_diff, prev_container=None)
 
         prev_container = None
         for container in self.containers:
-            container.print_tree(with_color=with_color, prev_container=prev_container, with_diff=with_diff)
+            container.print_tree(with_color=with_color, with_diff=with_diff, prev_container=prev_container)
             prev_container = container
 
-        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
+        ContainerListLine().print_tree(with_color=with_color, with_diff=with_diff, prev_container=None)
 
         for summary_item in summary:
-            summary_item.print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
+            summary_item.print_tree(with_color=with_color, with_diff=with_diff, prev_container=None)
 
     def print_csv(self):
         ContainerListHeader().print_csv()
