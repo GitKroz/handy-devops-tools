@@ -68,7 +68,6 @@ COLOR_BOLD_WHITE = '\033[1;97m'
 config = {
     'units': '',  # Will be set by argparse
     'max_output_width': 0,  # Will be set by argparse
-    'show_diff': False,  # Filled based on inputs. Selects variant of table view/tree view
     'table_view': {
         'columns_no_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests'],
         'columns_with_diff': ['podIndex', 'workloadType', 'podName', 'type', 'name', 'CPURequests', 'CPULimits', 'memoryRequests', 'memoryLimits', 'ephStorageRequests', 'ephStorageLimits', 'PVCRequests', 'change', 'ref_CPURequests', 'ref_CPULimits', 'ref_memoryRequests', 'ref_memoryLimits', 'ref_ephStorageRequests', 'ref_ephStorageLimits', 'ref_PVCRequests']
@@ -1068,7 +1067,7 @@ class KubernetesResourceSet:
                     config['fields'][field]['min_width']
                 )
 
-    def set_optimal_field_width(self, view_mode: str) -> None:
+    def set_optimal_field_width(self, view_mode: str, with_diff: bool) -> None:
         global config
 
         ContainerListItem.reset_field_widths()
@@ -1111,14 +1110,14 @@ class KubernetesResourceSet:
 
         if config['max_output_width'] > 0:  # 0 means do not scale
             if view_mode == 'table':
-                sample_line = header.make_table_lines(with_color=False, with_diff=config['show_diff'])[0]
+                sample_line = header.make_table_lines(with_color=False, with_diff=with_diff)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
                 self.scale_optimal_field_width(
                     scalable_fields=['podName', 'name']
                 )
             elif view_mode == 'tree':
-                sample_line = header.make_tree_lines(with_color=False, with_diff=config['show_diff'], prev_container=None)[0]
+                sample_line = header.make_tree_lines(with_color=False, with_diff=with_diff, prev_container=None)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
                 self.scale_optimal_field_width(
@@ -1152,11 +1151,11 @@ class KubernetesResourceSet:
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
-            self.set_optimal_field_width(view_mode='table')
+            self.set_optimal_field_width(view_mode='table', with_diff=with_diff)
             self.print_table(with_color=with_color, with_diff=with_diff, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
-            self.set_optimal_field_width(view_mode='tree')
+            self.set_optimal_field_width(view_mode='tree', with_diff=with_diff)
             self.print_tree(with_color=with_color, with_diff=with_diff, summary=summary)
         elif output_format == "csv":
             logger.debug("Output format: csv")
@@ -1901,8 +1900,6 @@ def main():
             for source in args.references:
                 ref_resources.load(source=source, role='reference')
                 with_diff = True
-
-        config['show_diff'] = with_diff  # TODO: Replace all 'with_diff' to using this config variable
 
         if with_diff:
             all_resources.compare(ref_resources)
