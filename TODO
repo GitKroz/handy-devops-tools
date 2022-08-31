@@ -1,5 +1,4 @@
 kubestat.py
-* Bug: incorrect width calculation with colors. Reason: make_table/tree_lines() must have capability to work in non-color mode
 * Update readme.md
 * Dump: automated adding suffix
 * Refactoring: eliminate camel case even in fields of dicts
