@@ -130,6 +130,7 @@ config = {
     ],
     'fields': {
         # Alignment: < (left) > (right) ^ (center) - see https://docs.python.org/3/library/string.html#grammar-token-format-string-format_spec
+        # If field has min_width, than it is scalable - will be resized with specific --width is requests
         'appKey': {
             'header': 'App Key',
             'alignment': '<'
@@ -140,7 +141,8 @@ config = {
         },
         'appName': {
             'header': 'Application',
-            'alignment': '<'
+            'alignment': '<',
+            'min_width': 10
         },
         'workloadType': {
             'header': 'Kind',
@@ -584,6 +586,24 @@ class ContainerListItem:
 
         return r
 
+    @staticmethod
+    def get_fields_to_print(output_format: str, with_diff: bool) -> List:
+        global config
+
+        # TODO: key in config must be the same as 'output_format' variable value
+        if output_format == 'table':
+            view_config = config['table_view']
+        elif output_format == 'tree':
+            view_config = config['tree_view']
+        else:
+            raise RuntimeError('Unexpected output format: {}'.format(output_format))
+
+        r: List = view_config['columns_no_diff']
+        if with_diff:
+            r = view_config['columns_with_diff']
+
+        return r
+
     def make_table_lines(self, with_color: bool, with_diff: bool) -> List[str]:
         global config
 
@@ -593,9 +613,7 @@ class ContainerListItem:
         if self.is_decoration():
             highlight_changes = False
 
-        columns = config['table_view']['columns_no_diff']
-        if with_diff:
-            columns = config['table_view']['columns_with_diff']
+        columns = self.get_fields_to_print(output_format='table', with_diff=with_diff)
 
         row = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=highlight_changes, make_bold=False)
 
@@ -638,9 +656,7 @@ class ContainerListItem:
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_container']
 
         # Whole row
-        columns = config['tree_view']['columns_no_diff']
-        if with_diff:
-            columns = config['tree_view']['columns_with_diff']
+        columns = self.get_fields_to_print(output_format='tree', with_diff=with_diff)
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=True, make_bold=False)
 
@@ -692,9 +708,7 @@ class ContainerListLine(ContainerListItem):
         # Already filled with right value
 
         # Whole row
-        columns = config['tree_view']['columns_no_diff']
-        if with_diff:
-            columns = config['tree_view']['columns_with_diff']
+        columns = self.get_fields_to_print(output_format='tree', with_diff=with_diff)
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=False, make_bold=False)
 
@@ -740,9 +754,7 @@ class ContainerListHeader(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_header']
 
         # Whole row
-        columns = config['tree_view']['columns_no_diff']
-        if with_diff:
-            columns = config['tree_view']['columns_with_diff']
+        columns = self.get_fields_to_print(output_format='tree', with_diff=with_diff)
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=False, make_bold=True)
 
@@ -767,9 +779,7 @@ class ContainerListSummary(ContainerListItem):
         self.fields['_tree_branch'] = dynamic_fields['_tree_branch_summary']
 
         # Whole row
-        columns = config['tree_view']['columns_no_diff']
-        if with_diff:
-            columns = config['tree_view']['columns_with_diff']
+        columns = self.get_fields_to_print(output_format='tree', with_diff=with_diff)
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=True, make_bold=True)
 
@@ -1101,27 +1111,35 @@ class KubernetesResourceSet:
             len(header.fields['_tree_branch'])
         )
 
-        # Considering max_output_width
+        # Adjust width to respect max_output_width
         if config['max_output_width'] < 0:  # Get terminal size
             term_cols, term_rows = shutil.get_terminal_size((999, 999))
             if term_cols == 999:  # Failure of autodetection
                 term_cols = 0  # Unlimited
             config['max_output_width'] = term_cols
 
+        all_scalable_fields = [field for field in config['fields'].keys() if 'min_width' in config['fields'][field]]
+
         if config['max_output_width'] > 0:  # 0 means do not scale
             if view_mode == 'table':
                 sample_line = header.make_table_lines(with_color=False, with_diff=with_diff)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
+                columns = ContainerListItem.get_fields_to_print(output_format='table', with_diff=with_diff)
+                scalable_fields = list(set(all_scalable_fields) & set(columns))  # Intersection aka common values only
+
                 self.scale_optimal_field_width(
-                    scalable_fields=['podName', 'name']
+                    scalable_fields=scalable_fields
                 )
             elif view_mode == 'tree':
                 sample_line = header.make_tree_lines(with_color=False, with_diff=with_diff, prev_container=None)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
+                columns = ContainerListItem.get_fields_to_print(output_format='tree', with_diff=with_diff)
+                scalable_fields = list(set(all_scalable_fields) & set(columns))  # Intersection aka common values only
+
                 self.scale_optimal_field_width(
-                    scalable_fields=['_tree_branch']
+                    scalable_fields=scalable_fields
                 )
             else:
                 raise RuntimeError("Unexpected view mode: {}".format(view_mode))

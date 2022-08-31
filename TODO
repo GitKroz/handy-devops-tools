@@ -3,7 +3,6 @@ kubestat.py
 * Dump: automated adding suffix
 * Refactoring: eliminate camel case even in fields of dicts
 * Assertion of list of fields
-* Max output width: Make configurable which fields are scalable; consider templates (column list) for table and tree
 * Max output width: In arguments allow setting per-field width
 * Add context variable where relevant
 * For per-container parsing: make configurable (may be) or simplify
