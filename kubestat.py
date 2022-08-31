@@ -585,7 +585,7 @@ class ContainerListItem:
 
         return r
 
-    def make_table_lines(self, with_color: bool, with_changes: bool) -> List[str]:
+    def make_table_lines(self, with_color: bool, with_diff: bool) -> List[str]:
         global config
 
         r = list()
@@ -595,7 +595,7 @@ class ContainerListItem:
             highlight_changes = False
 
         columns = config['table_view']['columns_no_diff']
-        if with_changes:
+        if with_diff:
             columns = config['table_view']['columns_with_diff']
 
         row = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=highlight_changes, make_bold=False)
@@ -603,12 +603,12 @@ class ContainerListItem:
         r.append(row)
         return r
 
-    def print_table(self, with_color: bool, with_changes: bool) -> None:
-        lines = self.make_table_lines(with_color=with_color, with_changes=with_changes)
+    def print_table(self, with_color: bool, with_diff: bool) -> None:
+        lines = self.make_table_lines(with_color=with_color, with_diff=with_diff)
         for line in lines:
             print(line)
 
-    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_diff: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -640,7 +640,7 @@ class ContainerListItem:
 
         # Whole row
         columns = config['tree_view']['columns_no_diff']
-        if with_changes:
+        if with_diff:
             columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=True, make_bold=False)
@@ -648,8 +648,8 @@ class ContainerListItem:
         r.append(row)
         return r
 
-    def print_tree(self, with_color: bool, prev_container, with_changes: bool) -> None:
-        lines = self.make_tree_lines(with_color=with_color, with_changes=with_changes, prev_container=prev_container)
+    def print_tree(self, with_color: bool, prev_container, with_diff: bool) -> None:
+        lines = self.make_tree_lines(with_color=with_color, with_diff=with_diff, prev_container=prev_container)
         for line in lines:
             print(line)
 
@@ -684,7 +684,7 @@ class ContainerListLine(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_diff: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -694,7 +694,7 @@ class ContainerListLine(ContainerListItem):
 
         # Whole row
         columns = config['tree_view']['columns_no_diff']
-        if with_changes:
+        if with_diff:
             columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=False, make_bold=False)
@@ -731,7 +731,7 @@ class ContainerListHeader(ContainerListItem):
     def is_decoration(self) -> bool:  # Header, Line etc
         return True
 
-    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_diff: bool, prev_container) -> List[str]:
         global config
 
         r = list()
@@ -742,7 +742,7 @@ class ContainerListHeader(ContainerListItem):
 
         # Whole row
         columns = config['tree_view']['columns_no_diff']
-        if with_changes:
+        if with_diff:
             columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=False, make_bold=True)
@@ -760,7 +760,7 @@ class ContainerListSummary(ContainerListItem):
     def __init__(self):
         super().__init__()
 
-    def make_tree_lines(self, with_color: bool, with_changes: bool, prev_container) -> List[str]:
+    def make_tree_lines(self, with_color: bool, with_diff: bool, prev_container) -> List[str]:
         r = list()
 
         # First column
@@ -769,7 +769,7 @@ class ContainerListSummary(ContainerListItem):
 
         # Whole row
         columns = config['tree_view']['columns_no_diff']
-        if with_changes:
+        if with_diff:
             columns = config['tree_view']['columns_with_diff']
 
         row: str = self.fields_to_table(columns=columns, with_color=with_color, highlight_changes=True, make_bold=True)
@@ -959,7 +959,7 @@ class KubernetesResourceSet:
 
         return r
 
-    def get_resources_total(self, with_changes: bool, pod_name_template: str, container_name_template: str = '') -> ContainerListItem:
+    def get_resources_total(self, with_diff: bool, pod_name_template: str, container_name_template: str = '') -> ContainerListItem:
         r = ContainerListSummary()
 
         stat = {
@@ -1038,7 +1038,7 @@ class KubernetesResourceSet:
 
         r.fields["change"] = "Unchanged"
         r.fields["changedFields"] = set()
-        if with_changes:
+        if with_diff:
             r.check_if_modified()
 
         return r
@@ -1074,7 +1074,7 @@ class KubernetesResourceSet:
         ContainerListItem.reset_field_widths()
 
         header = ContainerListHeader()
-        summary_items = self.make_summary_items(with_changes=True)  # with_changes is not important for width calculation
+        summary_items = self.make_summary_items(with_diff=True)  # with_diff is not important for width calculation
 
         # Static fields
         for container in self.containers + [header] + summary_items:  # Taking maximum length of values of all containers plus header
@@ -1111,14 +1111,14 @@ class KubernetesResourceSet:
 
         if config['max_output_width'] > 0:  # 0 means do not scale
             if view_mode == 'table':
-                sample_line = header.make_table_lines(with_color=False, with_changes=config['show_diff'])[0]
+                sample_line = header.make_table_lines(with_color=False, with_diff=config['show_diff'])[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
                 self.scale_optimal_field_width(
                     scalable_fields=['podName', 'name']
                 )
             elif view_mode == 'tree':
-                sample_line = header.make_tree_lines(with_color=False, with_changes=config['show_diff'], prev_container=None)[0]
+                sample_line = header.make_tree_lines(with_color=False, with_diff=config['show_diff'], prev_container=None)[0]
                 ContainerListItem.line_width_before_scaling = len(sample_line)
 
                 self.scale_optimal_field_width(
@@ -1127,14 +1127,14 @@ class KubernetesResourceSet:
             else:
                 raise RuntimeError("Unexpected view mode: {}".format(view_mode))
 
-    def make_summary_items(self, with_changes: bool) -> List[ContainerListItem]:
+    def make_summary_items(self, with_diff: bool) -> List[ContainerListItem]:
         summary = list()
 
         for summary_cfg in config['summary']:
             criteria: ContainerListItem = parse_filter_expression(criteria=summary_cfg['filter'])
             filtered_subset: KubernetesResourceSet = self.filter(criteria=criteria, inverse=False)
             summary_item = filtered_subset.get_resources_total(
-                with_changes=with_changes,
+                with_diff=with_diff,
                 pod_name_template=summary_cfg['pod_text'],
                 container_name_template=summary_cfg['container_text']
             )
@@ -1142,53 +1142,53 @@ class KubernetesResourceSet:
 
         return summary
 
-    def print(self, output_format: str, with_color: bool, with_changes: bool):
+    def print(self, output_format: str, with_color: bool, with_diff: bool):
         global logger
         global config
 
         # Summary lines
-        summary = self.make_summary_items(with_changes=with_changes)
+        summary = self.make_summary_items(with_diff=with_diff)
 
         # Printing
         if output_format == "table":
             logger.debug("Output format: table")
             self.set_optimal_field_width(view_mode='table')
-            self.print_table(with_color=with_color, with_changes=with_changes, summary=summary)
+            self.print_table(with_color=with_color, with_diff=with_diff, summary=summary)
         elif output_format == "tree":
             logger.debug("Output format: tree")
             self.set_optimal_field_width(view_mode='tree')
-            self.print_tree(with_color=with_color, with_changes=with_changes, summary=summary)
+            self.print_tree(with_color=with_color, with_diff=with_diff, summary=summary)
         elif output_format == "csv":
             logger.debug("Output format: csv")
             self.print_csv()
         else:
             raise RuntimeError("Invalid output format: {}".format(output_format))
 
-    def print_table(self, with_color: bool, with_changes: bool, summary: Optional[List] = False):
-        ContainerListHeader().print_table(with_color=with_color, with_changes=with_changes)
-        ContainerListLine().print_table(with_color=with_color, with_changes=with_changes)
+    def print_table(self, with_color: bool, with_diff: bool, summary: Optional[List] = False):
+        ContainerListHeader().print_table(with_color=with_color, with_diff=with_diff)
+        ContainerListLine().print_table(with_color=with_color, with_diff=with_diff)
 
         for container in self.containers:
-            container.print_table(with_color=with_color, with_changes=with_changes)
+            container.print_table(with_color=with_color, with_diff=with_diff)
 
-        ContainerListLine().print_table(with_color=with_color, with_changes=with_changes)
+        ContainerListLine().print_table(with_color=with_color, with_diff=with_diff)
 
         for summary_item in summary:
-            summary_item.print_table(with_color=with_color, with_changes=with_changes)
+            summary_item.print_table(with_color=with_color, with_diff=with_diff)
 
-    def print_tree(self, with_color: bool, with_changes: bool, summary: Optional[List] = False):
-        ContainerListHeader().print_tree(with_color=with_color, prev_container=None, with_changes=with_changes)
-        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_changes=with_changes)
+    def print_tree(self, with_color: bool, with_diff: bool, summary: Optional[List] = False):
+        ContainerListHeader().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
+        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
 
         prev_container = None
         for container in self.containers:
-            container.print_tree(with_color=with_color, prev_container=prev_container, with_changes=with_changes)
+            container.print_tree(with_color=with_color, prev_container=prev_container, with_diff=with_diff)
             prev_container = container
 
-        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_changes=with_changes)
+        ContainerListLine().print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
 
         for summary_item in summary:
-            summary_item.print_tree(with_color=with_color, prev_container=None, with_changes=with_changes)
+            summary_item.print_tree(with_color=with_color, prev_container=None, with_diff=with_diff)
 
     def print_csv(self):
         ContainerListHeader().print_csv()
@@ -1791,19 +1791,6 @@ def res_mem_bytes_to_str_1000(value: int) -> str:
     return r
 
 
-# def cfg_disable_colors() -> None:
-#     global config
-#     global COLOR_NONE, COLOR_RESET, COLOR_BOLD_DEFAULT
-#
-#     category: Dict
-#     for category_name, category in config['colors'].items():
-#         for k, v in category.items():
-#             category[k] = COLOR_NONE
-#
-#     COLOR_BOLD_DEFAULT = COLOR_NONE
-#     COLOR_RESET = COLOR_NONE
-
-
 def write_dump(filename: str):
     global dump
 
@@ -1899,9 +1886,6 @@ def main():
 
     parse_args()
 
-    # if not args.colors:
-    #     cfg_disable_colors()
-
     config['units'] = args.units
     config['max_output_width'] = int(args.max_output_width)
 
@@ -1912,15 +1896,15 @@ def main():
         for source in args.inputs:
             all_resources.load(source=source, role='input')
 
-        with_changes = False
+        with_diff = False
         if args.references is not None:
             for source in args.references:
                 ref_resources.load(source=source, role='reference')
-                with_changes = True
+                with_diff = True
 
-        config['show_diff'] = with_changes  # TODO: Replace all 'with_diff' to using this config variable
+        config['show_diff'] = with_diff  # TODO: Replace all 'with_diff' to using this config variable
 
-        if with_changes:
+        if with_diff:
             all_resources.compare(ref_resources)
 
         # Filtering
@@ -1937,7 +1921,7 @@ def main():
             )
 
         # Output
-        resources.print(output_format=args.output_format, with_color=args.colors, with_changes=with_changes)
+        resources.print(output_format=args.output_format, with_color=args.colors, with_diff=with_diff)
     except Exception as e:
         msg = "{}".format(e)
         logger.error(msg)
