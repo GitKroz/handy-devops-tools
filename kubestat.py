@@ -1859,8 +1859,8 @@ def parse_args():
         formatter_class=argparse.RawTextHelpFormatter
     )
 
-    parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
-                        help='Write dump to the file')
+    # parser.add_argument('-d', '--dump', metavar='DUMP_FILE', dest='dump_file', type=str,
+    #                    help='Write dump to the file')
     parser.add_argument('--color', dest='colors', action="store_true",
                         help="Enable colors")
 
@@ -1943,13 +1943,13 @@ def main():
         traceback.print_exc()
 
         dump['error'] = msg
-        if args.dump_file is not None:
-            write_dump(args.dump_file)
+        # if args.dump_file is not None:
+        #     write_dump(args.dump_file)
 
         quit(1)
 
-    if args.dump_file is not None:
-        write_dump(args.dump_file)
+    # if args.dump_file is not None:
+    #     write_dump(args.dump_file)
 
 
 if __name__ == "__main__":
